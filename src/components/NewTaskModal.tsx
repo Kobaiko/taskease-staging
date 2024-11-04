@@ -152,29 +152,26 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
               />
             </div>
 
-            <div>
-              <div className="flex flex-col mb-4">
-                <div className="flex justify-between items-center">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Subtasks
-                  </label>
+            {!subTasks.length && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGenerateSubtasks}
+                  disabled={!title || !description || isGenerating || credits <= 0}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Subtasks'}
+                </button>
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                  {credits} credits remaining
                 </div>
-                {!subTasks.length && (
-                  <>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {credits} credits remaining
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleGenerateSubtasks}
-                      disabled={!title || !description || isGenerating || credits <= 0}
-                      className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? 'Generating...' : 'Generate Subtasks'}
-                    </button>
-                  </>
-                )}
-              </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                Subtasks
+              </label>
 
               <div className="space-y-3">
                 {subTasks.map((subTask) => (
