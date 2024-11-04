@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Layout, Sun, Moon, User } from 'lucide-react';
 import { TaskCard } from '../components/TaskCard';
 import { NewTaskModal } from '../components/NewTaskModal';
@@ -28,27 +28,26 @@ export function Dashboard() {
     }
   }, [currentUser]);
 
-  async function loadUserCredits() {
+  const loadUserCredits = async () => {
     if (!currentUser) return;
     const userCredits = await getUserCredits(currentUser.uid);
     setCredits(userCredits);
-  }
+  };
 
-  async function loadUserTheme() {
+  const loadUserTheme = async () => {
     if (!currentUser) return;
     const theme = await getUserTheme(currentUser.uid);
     if (theme) {
       setIsDark(theme === 'dark');
       document.documentElement.classList.toggle('dark', theme === 'dark');
     }
-  }
+  };
 
-  async function loadTasks() {
+  const loadTasks = async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
       const userTasks = await getUserTasks(currentUser.uid);
-      // Sort tasks by creation date, newest first
       const sortedTasks = userTasks.sort((a, b) => {
         const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.seconds * 1000);
         const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.seconds * 1000);
@@ -58,12 +57,13 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const handleCreateTask = async (title: string, description: string, subTasks: SubTask[]) => {
     if (!currentUser) return;
 
-    const newTask: Omit<Task, 'id'> = {
+    const newTask: Task = {
+      id: crypto.randomUUID(), // Temporary ID for optimistic update
       title,
       description,
       subTasks,
@@ -72,15 +72,30 @@ export function Dashboard() {
       userId: currentUser.uid
     };
 
-    const taskId = await createTask(currentUser.uid, newTask);
-    await loadTasks();
-    await loadUserCredits();
+    // Optimistic update
+    setTasks(prevTasks => [newTask, ...prevTasks]);
+
+    try {
+      // Actual API call
+      const taskId = await createTask(currentUser.uid, newTask);
+      // Update the temporary ID with the real one
+      setTasks(prevTasks => prevTasks.map(task => 
+        task.id === newTask.id ? { ...task, id: taskId } : task
+      ));
+      await loadUserCredits();
+    } catch (error) {
+      // Rollback on error
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== newTask.id));
+      console.error('Failed to create task:', error);
+    }
   };
 
-  const handleToggleSubTask = async (taskId: string, subTaskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+  const handleToggleSubTask = useCallback(async (taskId: string, subTaskId: string) => {
+    // Find the task and update it locally first
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
 
+    const task = tasks[taskIndex];
     const updatedSubTasks = task.subTasks.map(st => 
       st.id === subTaskId ? { ...st, completed: !st.completed } : st
     );
@@ -90,31 +105,74 @@ export function Dashboard() {
       fireConfetti();
     }
 
-    await updateTask(taskId, {
+    // Optimistic update
+    const updatedTask = {
+      ...task,
       subTasks: updatedSubTasks,
       completed: allCompleted
-    });
+    };
 
-    await loadTasks();
-  };
+    setTasks(prevTasks => prevTasks.map(t => 
+      t.id === taskId ? updatedTask : t
+    ));
 
-  const handleDeleteTask = async (taskId: string) => {
-    await deleteTask(taskId);
-    await loadTasks();
-  };
+    try {
+      // Sync with backend
+      await updateTask(taskId, {
+        subTasks: updatedSubTasks,
+        completed: allCompleted
+      });
+    } catch (error) {
+      // Rollback on error
+      setTasks(prevTasks => prevTasks.map(t => 
+        t.id === taskId ? task : t
+      ));
+      console.error('Failed to update task:', error);
+    }
+  }, [tasks]);
 
-  const handleAddSubTask = async (taskId: string, newSubTask: SubTask) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    // Store the task before removal for potential rollback
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) return;
 
+    // Optimistic update
+    setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+
+    try {
+      await deleteTask(taskId);
+    } catch (error) {
+      // Rollback on error
+      setTasks(prevTasks => [...prevTasks, taskToDelete]);
+      console.error('Failed to delete task:', error);
+    }
+  }, [tasks]);
+
+  const handleAddSubTask = useCallback(async (taskId: string, newSubTask: SubTask) => {
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const task = tasks[taskIndex];
     const updatedSubTasks = [...task.subTasks, newSubTask];
-    await updateTask(taskId, {
-      subTasks: updatedSubTasks,
-      completed: false
-    });
 
-    await loadTasks();
-  };
+    // Optimistic update
+    setTasks(prevTasks => prevTasks.map(t => 
+      t.id === taskId ? { ...t, subTasks: updatedSubTasks, completed: false } : t
+    ));
+
+    try {
+      await updateTask(taskId, {
+        subTasks: updatedSubTasks,
+        completed: false
+      });
+    } catch (error) {
+      // Rollback on error
+      setTasks(prevTasks => prevTasks.map(t => 
+        t.id === taskId ? task : t
+      ));
+      console.error('Failed to add subtask:', error);
+    }
+  }, [tasks]);
 
   const toggleTheme = async () => {
     const newTheme = !isDark;
@@ -164,7 +222,7 @@ export function Dashboard() {
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <h3 className="text-2xl font-medium text-gray-600 dark:text-gray-400">
-              TAKE YOUR TIME
+              Loading...
             </h3>
           </div>
         ) : tasks.length === 0 ? (
@@ -180,7 +238,7 @@ export function Dashboard() {
                 className="inline-flex items-center gap-2 h-9 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
                 <Plus className="h-5 w-5" />
-                <span className="hidden sm:inline">New Task</span>
+                <span>New Task</span>
               </button>
             </div>
           </div>
