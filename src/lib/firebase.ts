@@ -3,7 +3,6 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Validate required environment variables
 const requiredEnvVars = [
   'VITE_FIREBASE_API_KEY',
   'VITE_FIREBASE_AUTH_DOMAIN',
@@ -13,6 +12,7 @@ const requiredEnvVars = [
   'VITE_FIREBASE_APP_ID'
 ] as const;
 
+// Validate environment variables
 for (const envVar of requiredEnvVars) {
   if (!import.meta.env[envVar]) {
     throw new Error(`Missing required environment variable: ${envVar}`);
@@ -29,13 +29,8 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  throw error;
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const auth = getAuth(app);
