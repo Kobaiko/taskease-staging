@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Layout, Plus, RefreshCcw, UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Layout, Save, RefreshCcw, UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { isUserAdmin, getAllUsers, addAdmin, addCreditsToUser } from '../services/adminService';
+import { isUserAdmin, getAllUsers, addAdmin, setUserCredits } from '../services/adminService';
 
 interface User {
   id: string;
@@ -18,7 +18,7 @@ export function AdminDashboard() {
   const [error, setError] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [creditsToAdd, setCreditsToAdd] = useState('');
+  const [creditsToSet, setCreditsToSet] = useState('');
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -72,25 +72,25 @@ export function AdminDashboard() {
     }
   }
 
-  async function handleAddCredits(e: React.FormEvent) {
+  async function handleSetCredits(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedUser || !creditsToAdd) return;
+    if (!selectedUser || !creditsToSet) return;
 
     try {
       setError('');
-      const credits = parseInt(creditsToAdd);
-      if (isNaN(credits) || credits <= 0) {
+      const credits = parseInt(creditsToSet);
+      if (isNaN(credits) || credits < 0) {
         setError('Please enter a valid number of credits');
         return;
       }
 
-      await addCreditsToUser(selectedUser, credits);
+      await setUserCredits(selectedUser, credits);
       await loadUsers();
       setSelectedUser(null);
-      setCreditsToAdd('');
+      setCreditsToSet('');
     } catch (err) {
-      console.error('Failed to add credits:', err);
-      setError('Failed to add credits. Please try again.');
+      console.error('Failed to set credits:', err);
+      setError('Failed to set credits. Please try again.');
     }
   }
 
@@ -154,8 +154,8 @@ export function AdminDashboard() {
             </div>
 
             <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Credits</h2>
-              <form onSubmit={handleAddCredits} className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Set Credits</h2>
+              <form onSubmit={handleSetCredits} className="space-y-4">
                 <select
                   value={selectedUser || ''}
                   onChange={(e) => setSelectedUser(e.target.value)}
@@ -164,26 +164,26 @@ export function AdminDashboard() {
                   <option value="">Select user</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
-                      {user.email || user.id} ({user.credits} credits)
+                      {user.email} ({user.credits} credits)
                     </option>
                   ))}
                 </select>
                 <div className="flex gap-3">
                   <input
                     type="number"
-                    value={creditsToAdd}
-                    onChange={(e) => setCreditsToAdd(e.target.value)}
+                    value={creditsToSet}
+                    onChange={(e) => setCreditsToSet(e.target.value)}
                     placeholder="Number of credits"
-                    min="1"
+                    min="0"
                     className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
                   />
                   <button
                     type="submit"
-                    disabled={!selectedUser || !creditsToAdd}
+                    disabled={!selectedUser || !creditsToSet}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Plus size={16} />
-                    Add Credits
+                    <Save size={16} />
+                    Set Credits
                   </button>
                 </div>
               </form>
@@ -205,7 +205,7 @@ export function AdminDashboard() {
                   >
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">
-                        {user.email || user.id}
+                        {user.email}
                       </h3>
                       {user.displayName && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">

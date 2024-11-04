@@ -5,6 +5,7 @@ import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
 const CREDITS_COLLECTION = 'credits';
+const USERS_COLLECTION = 'users';
 const auth = getAuth();
 
 export async function initializeFirstAdmin(): Promise<void> {
@@ -54,37 +55,27 @@ export async function getAllUsers(): Promise<Array<{
     userCredits.set(doc.id, data.credits);
   });
 
-  // Get user details from Firebase Auth
-  const users = await Promise.all(
-    Array.from(userCredits.entries()).map(async ([userId, credits]) => {
-      // Get user data from Auth
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const userData = userDoc.data() || {};
-      
-      return {
-        id: userId,
-        email: userData.email || 'Unknown Email',
-        displayName: userData.displayName || null,
-        createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date(),
-        credits
-      };
-    })
-  );
+  // Get all users from the users collection
+  const usersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
+  const users = usersSnapshot.docs.map(doc => {
+    const userData = doc.data();
+    return {
+      id: doc.id,
+      email: userData.email,
+      displayName: userData.displayName || null,
+      createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date(),
+      credits: userCredits.get(doc.id) || 0
+    };
+  });
 
   return users;
 }
 
-export async function addCreditsToUser(userId: string, amount: number): Promise<void> {
+export async function setUserCredits(userId: string, credits: number): Promise<void> {
   const creditRef = doc(db, CREDITS_COLLECTION, userId);
-  const creditDoc = await getDoc(creditRef);
-
-  if (!creditDoc.exists()) {
-    throw new Error('User credits not found');
-  }
-
-  const currentCredits = creditDoc.data().credits;
-  await updateDoc(creditRef, {
-    credits: currentCredits + amount,
+  await setDoc(creditRef, {
+    userId,
+    credits,
     lastUpdated: new Date()
-  });
+  }, { merge: true });
 }
