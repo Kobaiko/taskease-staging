@@ -13,7 +13,7 @@ import {
   EmailAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
-import { initializeUserCredits } from '../services/creditService';
+import { initializeFirstAdmin } from '../services/adminService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -42,8 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
         setCurrentUser(user);
+        if (user) {
+          await initializeFirstAdmin();
+        }
         setLoading(false);
       });
 

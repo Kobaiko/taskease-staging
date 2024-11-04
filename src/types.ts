@@ -28,3 +28,9 @@ export interface UserCredits {
   credits: number;
   lastUpdated: Date;
 }
+
+export interface AdminUser {
+  email: string;
+  addedBy?: string;
+  addedAt: Date;
+}

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { X, LogOut, Mail, Lock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, LogOut, Mail, Lock, AlertCircle, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PhotoUpload } from './PhotoUpload';
 import { updateUserProfile, updateUserEmail, updateUserPassword } from '../services/userService';
+import { isUserAdmin } from '../services/adminService';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface ProfilePopupProps {
@@ -21,6 +23,21 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser?.email) {
+      checkAdminStatus();
+    }
+  }, [currentUser]);
+
+  async function checkAdminStatus() {
+    if (currentUser?.email) {
+      const adminStatus = await isUserAdmin(currentUser.email);
+      setIsAdmin(adminStatus);
+    }
+  }
 
   if (!isOpen || !currentUser) return null;
 
@@ -100,6 +117,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const handleLogout = async () => {
     try {
       await logout();
+      navigate('/login');
     } catch (err) {
       setError('Failed to log out');
       console.error(err);
@@ -163,6 +181,21 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
                   {isSaving ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
+
+              {isAdmin && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate('/admin');
+                    }}
+                    className="w-full py-2 flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-400 text-sm font-medium"
+                  >
+                    <Settings size={16} />
+                    Admin Dashboard
+                  </button>
+                </div>
+              )}
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
