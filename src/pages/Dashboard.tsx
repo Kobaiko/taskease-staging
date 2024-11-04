@@ -62,7 +62,7 @@ export function Dashboard() {
 
     const taskId = await createTask(currentUser.uid, newTask);
     await loadTasks();
-    await loadUserCredits(); // Reload credits after task creation
+    await loadUserCredits();
   };
 
   const handleToggleSubTask = async (taskId: string, subTaskId: string) => {
@@ -118,7 +118,7 @@ export function Dashboard() {
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">TaskEase</h1>
               <CreditDisplay credits={credits} />
@@ -142,7 +142,7 @@ export function Dashboard() {
               className="flex items-center gap-2 h-9 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
             >
               <Plus className="h-5 w-5" />
-              New Task
+              <span className="hidden sm:inline">New Task</span>
             </button>
           </div>
         </div>
@@ -162,7 +162,7 @@ export function Dashboard() {
                 className="inline-flex items-center gap-2 h-9 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
               >
                 <Plus className="h-5 w-5" />
-                New Task
+                <span className="hidden sm:inline">New Task</span>
               </button>
             </div>
           </div>
