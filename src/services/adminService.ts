@@ -1,11 +1,9 @@
 import { collection, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
-import { getAuth, listUsers } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
 const CREDITS_COLLECTION = 'credits';
-const auth = getAuth();
 
 export async function initializeFirstAdmin(): Promise<void> {
   const adminRef = doc(db, ADMINS_COLLECTION, 'kobaiko@gmail.com');
@@ -39,31 +37,17 @@ export async function addAdmin(email: string, addedByEmail: string): Promise<voi
 
 export async function getAllUsers(): Promise<Array<{
   id: string;
-  email: string | null;
-  displayName: string | null;
-  createdAt: Date;
   credits: number;
+  lastUpdated: Date;
 }>> {
-  // Get all credits documents
   const creditsSnapshot = await getDocs(collection(db, CREDITS_COLLECTION));
-  const userCredits = new Map<string, number>();
   
-  creditsSnapshot.forEach((doc) => {
+  return creditsSnapshot.docs.map(doc => {
     const data = doc.data() as UserCredits;
-    userCredits.set(doc.id, data.credits);
-  });
-
-  // Get all users from Firebase Auth
-  const users = await getDocs(collection(db, 'users'));
-  
-  return users.docs.map(doc => {
-    const userData = doc.data();
     return {
       id: doc.id,
-      email: userData.email || null,
-      displayName: userData.displayName || null,
-      createdAt: userData.createdAt ? new Date(userData.createdAt.seconds * 1000) : new Date(),
-      credits: userCredits.get(doc.id) || 0
+      credits: data.credits,
+      lastUpdated: data.lastUpdated ? new Date(data.lastUpdated.seconds * 1000) : new Date()
     };
   });
 }
