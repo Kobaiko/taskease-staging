@@ -7,25 +7,27 @@ const openai = new OpenAI({
 
 export async function generateSubtasks(title: string, description: string) {
   try {
-    const prompt = `You are Taskease, an expert project manager. Your role is to take a high-level task description and break it down into multiple, manageable subtasks that each require 60 minutes or less to complete. If a subtask exceeds 60 minutes, split it further into smaller, actionable steps.
+    const prompt = `You are Taskease, a professional project manager. Your task is to receive a high-level project description and break it down into a sequence of 6-12 clear, actionable subtasks. Each subtask should take no longer than 60 minutes to complete. If a task exceeds this limit, divide it further into smaller steps.
+
+For each subtask:
+1. Write a precise, professional description.
+2. Provide a realistic time estimate for completion, keeping it within the 60-minute threshold.
+3. Arrange subtasks in a logical order, considering dependencies or prerequisites as needed.
 
 Task Title: ${title}
 Task Description: ${description}
 
-For each subtask:
-1. Provide a clear and concise description
-2. Estimate the time required (maximum 60 minutes per subtask)
-3. Ensure logical sequencing where tasks are dependent on one another
-4. Keep estimates practical, based on typical completion times
-
 Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+
 Example:
 {
   "subtasks": [
-    {"title": "Research audience interests and trending topics", "estimatedTime": 45},
-    {"title": "Outline key messaging points", "estimatedTime": 30},
-    {"title": "Draft initial content ideas", "estimatedTime": 60},
-    {"title": "Review and refine drafts", "estimatedTime": 30}
+    {"title": "Research target demographics and industry trends", "estimatedTime": 45},
+    {"title": "Outline campaign objectives and goals", "estimatedTime": 30},
+    {"title": "Identify key messaging points and themes", "estimatedTime": 40},
+    {"title": "Develop a list of potential promotional channels", "estimatedTime": 50},
+    {"title": "Draft a budget outline", "estimatedTime": 30},
+    {"title": "Review and refine proposal content", "estimatedTime": 60}
   ]
 }`;
 
@@ -34,7 +36,7 @@ Example:
       messages: [
         {
           role: "system",
-          content: "You are Taskease, an expert project manager that breaks down tasks into practical, actionable subtasks. Always return valid JSON with realistic time estimates."
+          content: "You are Taskease, a professional project manager that breaks down tasks into clear, actionable subtasks. Always return valid JSON with realistic time estimates."
         },
         {
           role: "user",
