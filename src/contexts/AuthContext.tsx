@@ -10,10 +10,13 @@ import {
   linkWithPopup,
   fetchSignInMethodsForEmail,
   reauthenticateWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider,
+  GoogleAuthProvider
 } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from '../lib/firebase';
 import { initializeFirstAdmin } from '../services/adminService';
+import { initializeUserCredits } from '../services/creditService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -39,34 +42,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
         setCurrentUser(user);
         if (user) {
           await initializeFirstAdmin();
+          await initializeUserCredits(user.uid);
         }
+      } catch (err) {
+        console.error('Auth state change error:', err);
+      } finally {
         setLoading(false);
-      });
+      }
+    });
 
-      return unsubscribe;
-    } catch (err) {
-      console.error('Auth state change error:', err);
-      setError('Failed to initialize authentication');
-      setLoading(false);
-    }
+    return () => unsubscribe();
   }, []);
 
   async function signIn(email: string, password: string) {
     try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.includes('google.com')) {
+        throw new Error('This email is registered with Google. Please sign in with Google.');
+      }
       await signInWithEmailAndPassword(auth, email, password);
+      navigate('/');
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential') {
-        const methods = await fetchSignInMethodsForEmail(auth, email);
-        if (methods.includes('google.com')) {
-          throw new Error('This email is registered with Google. Please sign in with Google.');
-        }
+        throw new Error('Invalid email or password');
       }
       throw error;
     }
@@ -87,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(user, { displayName });
       await initializeUserCredits(user.uid);
+      navigate('/');
     } catch (error) {
       throw error;
     }
@@ -94,33 +101,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     try {
+      // Configure Google provider for better popup handling
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
       const result = await signInWithPopup(auth, googleProvider);
       const { user } = result;
-      const email = user.email;
-
-      if (email) {
-        const methods = await fetchSignInMethodsForEmail(auth, email);
-        
-        if (methods.includes('password') && !methods.includes('google.com')) {
-          try {
-            if (currentUser) {
-              await linkWithPopup(currentUser, googleProvider);
-            }
-          } catch (linkError) {
-            console.error('Error linking accounts:', linkError);
-          }
-        }
+      
+      if (!user.email) {
+        throw new Error('No email found in Google account');
       }
 
-      if (!user.displayName && email) {
+      // Initialize credits for new users
+      await initializeUserCredits(user.uid);
+
+      // Update display name if not set
+      if (!user.displayName) {
         await updateProfile(user, { 
-          displayName: email.split('@')[0] 
+          displayName: user.email.split('@')[0] 
         });
       }
 
-      await initializeUserCredits(user.uid);
+      navigate('/');
     } catch (error: any) {
-      if (error.code === 'auth/account-exists-with-different-credential') {
+      if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup was blocked. Please allow popups for this site and try again.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        throw new Error('Sign in was cancelled. Please try again.');
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
         throw new Error('An account already exists with this email. Please sign in with email/password.');
       }
       throw error;
@@ -134,7 +143,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw new Error('Failed to log out');
+    }
   }
 
   const value = {
