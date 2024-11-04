@@ -46,26 +46,7 @@
   }
 }
 
-/* Card Shine Effect */
+/* Card Styles */
 .card-container {
-  position: relative;
-  overflow: hidden;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent 50%);
-}
-
-.card-shine::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(
-    circle at top left,
-    rgba(59, 130, 246, 0.15),
-    transparent 70%
-  );
-  pointer-events: none;
-  z-index: 3;
+  @apply bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200;
 }
