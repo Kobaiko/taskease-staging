@@ -17,6 +17,7 @@ export function Dashboard() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [credits, setCredits] = useState(0);
+  const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -44,14 +45,19 @@ export function Dashboard() {
 
   async function loadTasks() {
     if (!currentUser) return;
-    const userTasks = await getUserTasks(currentUser.uid);
-    // Sort tasks by creation date, newest first
-    const sortedTasks = userTasks.sort((a, b) => {
-      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.seconds * 1000);
-      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.seconds * 1000);
-      return dateB.getTime() - dateA.getTime();
-    });
-    setTasks(sortedTasks);
+    setLoading(true);
+    try {
+      const userTasks = await getUserTasks(currentUser.uid);
+      // Sort tasks by creation date, newest first
+      const sortedTasks = userTasks.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.seconds * 1000);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.seconds * 1000);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setTasks(sortedTasks);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleCreateTask = async (title: string, description: string, subTasks: SubTask[]) => {
@@ -155,7 +161,13 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {tasks.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <h3 className="text-2xl font-medium text-gray-600 dark:text-gray-400">
+              TAKE YOUR TIME
+            </h3>
+          </div>
+        ) : tasks.length === 0 ? (
           <div className="text-center py-12">
             <Layout className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No tasks</h3>
