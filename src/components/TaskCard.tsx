@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CheckCircle, Clock, Trash2, Plus, ChevronDown } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { CheckCircle, Clock, Trash2, Plus } from 'lucide-react';
 import type { Task, SubTask } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { fireConfetti } from '../lib/confetti';
@@ -15,7 +15,6 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddSubTask, setShowAddSubTask] = useState(false);
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const completedSubTasks = task.subTasks.filter(st => st.completed).length;
   const progress = (completedSubTasks / task.subTasks.length) * 100;
@@ -24,7 +23,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
     .filter(st => !st.completed)
     .reduce((acc, st) => acc + st.estimatedTime, 0);
 
-  const handleAddSubTask = () => {
+  const handleAddSubTask = useCallback(() => {
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
@@ -36,174 +35,30 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
       setNewSubTask({ title: '', estimatedTime: '' });
       setShowAddSubTask(false);
     }
-  };
+  }, [newSubTask, task.id, onAddSubTask]);
 
-  const handleToggleSubTask = (subTaskId: string) => {
-    onToggleSubTask(task.id, subTaskId);
-    
+  const handleToggleSubTask = useCallback((subTaskId: string) => {
     const isLastSubTask = task.subTasks.filter(st => !st.completed).length === 1;
     const toggledSubTask = task.subTasks.find(st => st.id === subTaskId);
     
     if (isLastSubTask && !toggledSubTask?.completed) {
-      fireConfetti();
+      requestAnimationFrame(() => {
+        fireConfetti();
+      });
     }
-  };
 
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
+    onToggleSubTask(task.id, subTaskId);
+  }, [task.id, task.subTasks, onToggleSubTask]);
+
+  const handleDeleteConfirm = useCallback(() => {
+    onDeleteTask(task.id);
+    setShowDeleteConfirm(false);
+  }, [task.id, onDeleteTask]);
 
   return (
     <div className="card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
       <div className="card-shine">
-        {/* Mobile Header - Always visible */}
-        <div className="md:hidden">
-          <div 
-            className="p-4 cursor-pointer"
-            onClick={toggleExpand}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{task.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">{task.description}</p>
-              </div>
-              <div className="flex items-start gap-2 ml-4">
-                <div className="relative w-10 h-10">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {Math.round(progress)}%
-                    </span>
-                  </div>
-                  <svg className="w-10 h-10 transform -rotate-90">
-                    <circle
-                      className="text-gray-200 dark:text-gray-700"
-                      strokeWidth="2"
-                      stroke="currentColor"
-                      fill="transparent"
-                      r="16"
-                      cx="20"
-                      cy="20"
-                    />
-                    <circle
-                      className="text-blue-600 dark:text-blue-400"
-                      strokeWidth="2"
-                      strokeDasharray={100}
-                      strokeDashoffset={100 - progress}
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="transparent"
-                      r="16"
-                      cx="20"
-                      cy="20"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-1">
-                <Clock size={14} />
-                {remainingTime}m remaining
-              </div>
-              <ChevronDown 
-                size={20} 
-                className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-              />
-            </div>
-          </div>
-
-          {/* Mobile Expanded Content */}
-          <div 
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <div className="p-4 pt-0">
-              <div className="space-y-3 mb-4">
-                {task.subTasks.map((subTask, index) => (
-                  <div
-                    key={subTask.id || `${task.id}-subtask-${index}`}
-                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleToggleSubTask(subTask.id)}
-                        className={`rounded-full p-1 transition-colors duration-200 ${
-                          subTask.completed
-                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10'
-                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                        }`}
-                      >
-                        <CheckCircle size={20} />
-                      </button>
-                      <span
-                        className={`text-sm ${
-                          subTask.completed
-                            ? 'text-gray-400 dark:text-gray-500 line-through'
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {subTask.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
-                      <Clock size={14} className="mr-1" />
-                      {subTask.estimatedTime}m
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {showAddSubTask ? (
-                <div className="flex items-center gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={newSubTask.title}
-                    onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                    className="flex-1 h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                    placeholder="Subtask title"
-                  />
-                  <input
-                    type="number"
-                    value={newSubTask.estimatedTime}
-                    onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
-                    className="w-20 h-9 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                    placeholder="Min"
-                  />
-                  <button
-                    onClick={handleAddSubTask}
-                    className="h-9 w-9 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddSubTask(true)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1 mb-4"
-                >
-                  <Plus size={16} className="flex-shrink-0" />
-                  Add Subtask
-                </button>
-              )}
-
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Total: {totalEstimatedTime}m
-                </div>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Version - Always expanded */}
-        <div className="hidden md:block p-6">
+        <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{task.title}</h3>
@@ -250,9 +105,9 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
           </div>
 
           <div className="space-y-3 mb-6">
-            {task.subTasks.map((subTask, index) => (
+            {task.subTasks.map((subTask) => (
               <div
-                key={subTask.id || `${task.id}-subtask-${index}`}
+                key={subTask.id}
                 className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
               >
                 <div className="flex items-center gap-3">
@@ -330,10 +185,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={() => {
-          onDeleteTask(task.id);
-          setShowDeleteConfirm(false);
-        }}
+        onConfirm={handleDeleteConfirm}
         title="Delete Task"
         message="Are you sure you want to delete this task?"
         confirmText="Delete"
