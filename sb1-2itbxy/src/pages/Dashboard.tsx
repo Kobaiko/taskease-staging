@@ -47,8 +47,8 @@ export function Dashboard() {
     const userTasks = await getUserTasks(currentUser.uid);
     // Sort tasks by creation date, newest first
     const sortedTasks = userTasks.sort((a, b) => {
-      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.seconds * 1000);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.seconds * 1000);
       return dateB.getTime() - dateA.getTime();
     });
     setTasks(sortedTasks);
@@ -173,15 +173,19 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.map(task => (
-              <TaskCard
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min [grid-auto-flow:dense]">
+            {tasks.map((task, index) => (
+              <div 
                 key={task.id}
-                task={task}
-                onToggleSubTask={handleToggleSubTask}
-                onDeleteTask={handleDeleteTask}
-                onAddSubTask={handleAddSubTask}
-              />
+                className={`md:[grid-column:${(index % 3) + 1}] md:[grid-row:${Math.floor(index / 3) + 1}]`}
+              >
+                <TaskCard
+                  task={task}
+                  onToggleSubTask={handleToggleSubTask}
+                  onDeleteTask={handleDeleteTask}
+                  onAddSubTask={handleAddSubTask}
+                />
+              </div>
             ))}
           </div>
         )}
