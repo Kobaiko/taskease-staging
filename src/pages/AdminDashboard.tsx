@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Layout, Plus, RefreshCcw, UserPlus, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Layout, Plus, RefreshCcw, UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isUserAdmin, getAllUsers, addAdmin, addCreditsToUser } from '../services/adminService';
 
+interface User {
+  id: string;
+  email: string;
+  displayName: string | null;
+  createdAt: Date;
+  credits: number;
+}
+
 export function AdminDashboard() {
-  const [users, setUsers] = useState<Array<any>>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -16,8 +24,13 @@ export function AdminDashboard() {
 
   useEffect(() => {
     checkAdminAccess();
-    loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadUsers();
+    }
+  }, [currentUser]);
 
   async function checkAdminAccess() {
     if (!currentUser?.email) {
@@ -34,11 +47,12 @@ export function AdminDashboard() {
   async function loadUsers() {
     try {
       setLoading(true);
+      setError('');
       const allUsers = await getAllUsers();
       setUsers(allUsers);
     } catch (err) {
-      setError('Failed to load users');
-      console.error(err);
+      console.error('Failed to load users:', err);
+      setError('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -49,12 +63,12 @@ export function AdminDashboard() {
     if (!currentUser?.email || !newAdminEmail) return;
 
     try {
+      setError('');
       await addAdmin(newAdminEmail, currentUser.email);
       setNewAdminEmail('');
-      setError('');
     } catch (err) {
-      setError('Failed to add admin');
-      console.error(err);
+      console.error('Failed to add admin:', err);
+      setError('Failed to add admin. Please try again.');
     }
   }
 
@@ -63,6 +77,7 @@ export function AdminDashboard() {
     if (!selectedUser || !creditsToAdd) return;
 
     try {
+      setError('');
       const credits = parseInt(creditsToAdd);
       if (isNaN(credits) || credits <= 0) {
         setError('Please enter a valid number of credits');
@@ -73,10 +88,9 @@ export function AdminDashboard() {
       await loadUsers();
       setSelectedUser(null);
       setCreditsToAdd('');
-      setError('');
     } catch (err) {
-      setError('Failed to add credits');
-      console.error(err);
+      console.error('Failed to add credits:', err);
+      setError('Failed to add credits. Please try again.');
     }
   }
 
@@ -86,6 +100,14 @@ export function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
+              <Link
+                to="/"
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                <ArrowLeft size={20} />
+                <span className="text-sm">Back to App</span>
+              </Link>
+              <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
               <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
             </div>
@@ -142,7 +164,7 @@ export function AdminDashboard() {
                   <option value="">Select user</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
-                      {user.email} ({user.credits} credits)
+                      {user.email || user.id} ({user.credits} credits)
                     </option>
                   ))}
                 </select>
@@ -172,6 +194,8 @@ export function AdminDashboard() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Users</h2>
             {loading ? (
               <p className="text-gray-500 dark:text-gray-400">Loading users...</p>
+            ) : users.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">No users found</p>
             ) : (
               <div className="space-y-4">
                 {users.map(user => (
@@ -180,17 +204,18 @@ export function AdminDashboard() {
                     className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
                     <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">{user.email}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {user.displayName || 'No display name'}
-                      </p>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {user.email || user.id}
+                      </h3>
+                      {user.displayName && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {user.displayName}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                         {user.credits} credits
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Joined {new Date(user.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

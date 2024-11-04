@@ -1,9 +1,8 @@
 import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { AdminUser, UserCredits, UserProfile } from '../types';
+import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
-const USERS_COLLECTION = 'users';
 const CREDITS_COLLECTION = 'credits';
 
 export async function initializeFirstAdmin(): Promise<void> {
@@ -36,24 +35,33 @@ export async function addAdmin(email: string, addedByEmail: string): Promise<voi
   await setDoc(adminRef, admin);
 }
 
-export async function getAllUsers(): Promise<Array<UserProfile & { credits: number }>> {
-  const usersQuery = query(collection(db, USERS_COLLECTION));
-  const creditsQuery = query(collection(db, CREDITS_COLLECTION));
-
-  const [usersSnapshot, creditsSnapshot] = await Promise.all([
-    getDocs(usersQuery),
-    getDocs(creditsQuery)
-  ]);
-
-  const creditsMap = new Map();
-  creditsSnapshot.forEach(doc => {
-    creditsMap.set(doc.id, doc.data().credits);
+export async function getAllUsers(): Promise<Array<{
+  id: string;
+  email: string;
+  displayName: string | null;
+  createdAt: Date;
+  credits: number;
+}>> {
+  // Get all credits documents
+  const creditsSnapshot = await getDocs(collection(db, CREDITS_COLLECTION));
+  
+  // Create a map of user credits
+  const userCredits = new Map<string, number>();
+  creditsSnapshot.forEach((doc) => {
+    const data = doc.data() as UserCredits;
+    userCredits.set(doc.id, data.credits);
   });
 
-  return usersSnapshot.docs.map(doc => ({
-    ...doc.data() as UserProfile,
-    credits: creditsMap.get(doc.id) || 0
+  // Get all users from auth users in credits collection
+  const users = Array.from(userCredits.entries()).map(([userId, credits]) => ({
+    id: userId,
+    email: '',
+    displayName: null,
+    createdAt: new Date(),
+    credits
   }));
+
+  return users;
 }
 
 export async function addCreditsToUser(userId: string, amount: number): Promise<void> {
