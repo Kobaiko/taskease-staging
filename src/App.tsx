@@ -7,11 +7,13 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { UserProfile } from './pages/UserProfile';
+import { Analytics } from './components/Analytics';
 
 export default function App() {
   return (
     <Router>
       <AuthProvider>
+        <Analytics />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
