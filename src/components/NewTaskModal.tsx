@@ -104,7 +104,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Create New Task</h2>
@@ -198,25 +198,25 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 ))}
 
                 {showAddManual && (
-                  <div key="add-subtask-form" className="flex gap-3">
+                  <div key="add-subtask-form" className="grid grid-cols-[1fr,auto,auto] gap-2">
                     <input
                       type="text"
                       value={newSubTask.title}
                       onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                      className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                      placeholder="Subtask title"
+                      className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                      placeholder="Subtask"
                     />
                     <input
                       type="number"
                       value={newSubTask.estimatedTime}
                       onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
-                      className="w-24 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                      placeholder="Minutes"
+                      className="w-16 px-2 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                      placeholder="Min"
                     />
                     <button
                       type="button"
                       onClick={handleAddSubTask}
-                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
                       <Plus size={20} />
                     </button>
