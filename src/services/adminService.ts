@@ -1,11 +1,10 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
+import { getAuth, listUsers } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
 const CREDITS_COLLECTION = 'credits';
-const USERS_COLLECTION = 'users';
 const auth = getAuth();
 
 export async function initializeFirstAdmin(): Promise<void> {
@@ -40,35 +39,33 @@ export async function addAdmin(email: string, addedByEmail: string): Promise<voi
 
 export async function getAllUsers(): Promise<Array<{
   id: string;
-  email: string;
+  email: string | null;
   displayName: string | null;
   createdAt: Date;
   credits: number;
 }>> {
   // Get all credits documents
   const creditsSnapshot = await getDocs(collection(db, CREDITS_COLLECTION));
-  
-  // Create a map of user credits
   const userCredits = new Map<string, number>();
+  
   creditsSnapshot.forEach((doc) => {
     const data = doc.data() as UserCredits;
     userCredits.set(doc.id, data.credits);
   });
 
-  // Get all users from the users collection
-  const usersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
-  const users = usersSnapshot.docs.map(doc => {
+  // Get all users from Firebase Auth
+  const users = await getDocs(collection(db, 'users'));
+  
+  return users.docs.map(doc => {
     const userData = doc.data();
     return {
       id: doc.id,
-      email: userData.email,
+      email: userData.email || null,
       displayName: userData.displayName || null,
-      createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date(),
+      createdAt: userData.createdAt ? new Date(userData.createdAt.seconds * 1000) : new Date(),
       credits: userCredits.get(doc.id) || 0
     };
   });
-
-  return users;
 }
 
 export async function setUserCredits(userId: string, credits: number): Promise<void> {

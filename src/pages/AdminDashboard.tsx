@@ -6,7 +6,7 @@ import { isUserAdmin, getAllUsers, addAdmin, setUserCredits } from '../services/
 
 interface User {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string | null;
   createdAt: Date;
   credits: number;
@@ -164,7 +164,7 @@ export function AdminDashboard() {
                   <option value="">Select user</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
-                      {user.email} ({user.credits} credits)
+                      {user.email || user.id} ({user.credits} credits)
                     </option>
                   ))}
                 </select>
@@ -205,13 +205,16 @@ export function AdminDashboard() {
                   >
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">
-                        {user.email}
+                        {user.email || user.id}
                       </h3>
                       {user.displayName && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {user.displayName}
                         </p>
                       )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        ID: {user.id}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
