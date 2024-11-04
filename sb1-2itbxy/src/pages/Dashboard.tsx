@@ -46,9 +46,11 @@ export function Dashboard() {
     if (!currentUser) return;
     const userTasks = await getUserTasks(currentUser.uid);
     // Sort tasks by creation date, newest first
-    const sortedTasks = userTasks.sort((a, b) => 
-      b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    const sortedTasks = userTasks.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
     setTasks(sortedTasks);
   }
 
@@ -118,7 +120,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'dark bg-gray-900' : 'bg-gray-200'}`}>
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
