@@ -19,6 +19,13 @@ interface MarketingConsent {
   timestamp: Date;
 }
 
+interface BetaConsent {
+  email: string;
+  displayName: string;
+  betaConsent: boolean;
+  timestamp: Date;
+}
+
 export async function uploadUserPhoto(file: File, userId: string): Promise<string> {
   if (!auth.currentUser) throw new Error('No authenticated user');
 
@@ -85,6 +92,14 @@ export async function getUserTheme(userId: string): Promise<'dark' | 'light' | n
 export async function saveMarketingConsent(userId: string, data: MarketingConsent) {
   const marketingRef = doc(collection(db, 'marketing_consent'), userId);
   await setDoc(marketingRef, {
+    ...data,
+    timestamp: new Date()
+  });
+}
+
+export async function saveBetaConsent(userId: string, data: BetaConsent) {
+  const betaRef = doc(collection(db, 'beta_consent'), userId);
+  await setDoc(betaRef, {
     ...data,
     timestamp: new Date()
   });
