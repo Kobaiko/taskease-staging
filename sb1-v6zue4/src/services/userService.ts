@@ -6,15 +6,8 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL,
-  deleteObject,
-  listAll
-} from 'firebase/storage';
 import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { storage, db, auth } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 
 interface MarketingConsent {
   email: string;
@@ -28,53 +21,6 @@ interface BetaConsent {
   displayName: string;
   betaConsent: boolean;
   timestamp: Date;
-}
-
-export async function uploadUserPhoto(file: File, userId: string): Promise<string> {
-  if (!auth.currentUser) throw new Error('No authenticated user');
-
-  try {
-    // Create a reference to the new photo
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${userId}_${Date.now()}.${fileExtension}`;
-    const photoRef = ref(storage, `user-photos/${userId}/${fileName}`);
-
-    // Set custom metadata
-    const metadata = {
-      contentType: file.type,
-      customMetadata: {
-        userId
-      }
-    };
-
-    // Delete old photo if it exists
-    const currentUser = auth.currentUser;
-    if (currentUser.photoURL?.includes('firebasestorage')) {
-      try {
-        const oldPhotoRef = ref(storage, currentUser.photoURL);
-        await deleteObject(oldPhotoRef).catch(() => {
-          console.log('Old photo not found or already deleted');
-        });
-      } catch (error) {
-        console.error('Error deleting old photo:', error);
-      }
-    }
-
-    // Upload new photo
-    await uploadBytes(photoRef, file, metadata);
-    const photoURL = await getDownloadURL(photoRef);
-
-    // Update user profile
-    await updateProfile(currentUser, { photoURL });
-
-    return photoURL;
-  } catch (error: any) {
-    console.error('Error in uploadUserPhoto:', error);
-    if (error.code === 'storage/unauthorized' || error.code === 'storage/cors-error') {
-      throw new Error('Unable to access storage. Please try again later.');
-    }
-    throw new Error('Failed to upload photo');
-  }
 }
 
 export async function updateUserProfile(data: {
@@ -128,26 +74,6 @@ export async function saveBetaConsent(userId: string, data: BetaConsent) {
   });
 }
 
-async function deleteUserPhotos(userId: string) {
-  try {
-    const userPhotosRef = ref(storage, `user-photos/${userId}`);
-    const photosList = await listAll(userPhotosRef);
-    
-    if (photosList.items.length > 0) {
-      await Promise.all(
-        photosList.items.map(itemRef => 
-          deleteObject(itemRef).catch(err => {
-            console.log(`Failed to delete photo: ${err.message}`);
-          })
-        )
-      );
-    }
-  } catch (error) {
-    // Ignore errors if no photos exist
-    console.log('No user photos to delete or access denied');
-  }
-}
-
 async function deleteUserDocuments(userId: string) {
   const collections = [
     'tasks',
@@ -186,11 +112,8 @@ export async function deleteUserAccount(userId: string) {
   if (!auth.currentUser) throw new Error('No authenticated user');
 
   try {
-    // Delete user data in parallel
-    await Promise.all([
-      deleteUserDocuments(userId),
-      deleteUserPhotos(userId)
-    ]);
+    // Delete user data
+    await deleteUserDocuments(userId);
 
     // Finally, delete the user authentication account
     await deleteUser(auth.currentUser);

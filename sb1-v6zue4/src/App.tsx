@@ -6,7 +6,6 @@ import { Dashboard } from './pages/Dashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
-import { UserProfile } from './pages/UserProfile';
 import { AccountDeleted } from './pages/AccountDeleted';
 
 export default function App() {
@@ -30,14 +29,6 @@ export default function App() {
             element={
               <AuthGuard>
                 <AdminDashboard />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <AuthGuard>
-                <UserProfile />
               </AuthGuard>
             }
           />
