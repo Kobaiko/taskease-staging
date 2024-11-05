@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
-import { initializeGoogleAnalytics, removeGoogleAnalytics } from '../lib/analytics';
 
 export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
@@ -8,45 +7,71 @@ export function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
+    // Show the consent popup after a short delay if no preference is stored
     const hasInteracted = localStorage.getItem('cookieConsent');
     if (!hasInteracted) {
-      const timer = setTimeout(() => setIsVisible(true), 1500);
+      const timer = setTimeout(() => setIsVisible(true), 1000);
       return () => clearTimeout(timer);
-    } else if (hasInteracted === 'accepted') {
-      initializeGoogleAnalytics();
     }
   }, []);
 
-  const handleInteraction = (accepted: boolean) => {
-    setIsExiting(true);
-    setTimeout(() => {
-      setIsVisible(false);
-      localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
-      
-      if (accepted) {
-        initializeGoogleAnalytics();
-      } else {
-        removeGoogleAnalytics();
-        // Remove any existing third-party cookies
-        document.cookie.split(';').forEach(cookie => {
-          const [name] = cookie.split('=');
-          if (name.trim() !== 'cookieConsent') {
-            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-          }
-        });
-      }
-    }, 300);
+  const initializeAnalytics = () => {
+    const script1 = document.createElement('script');
+    script1.async = true;
+    script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-CEDBMXRBYX';
+    document.head.appendChild(script1);
+
+    const script2 = document.createElement('script');
+    script2.innerHTML = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-CEDBMXRBYX');
+    `;
+    document.head.appendChild(script2);
   };
 
-  const handleClose = () => {
-    handleInteraction(false);
+  const removeAnalytics = () => {
+    const scripts = document.getElementsByTagName('script');
+    for (let i = scripts.length - 1; i >= 0; i--) {
+      const script = scripts[i];
+      if (
+        script.src.includes('googletagmanager.com/gtag') ||
+        script.innerHTML.includes('gtag')
+      ) {
+        script.remove();
+      }
+    }
+  };
+
+  const handleInteraction = (accepted: boolean) => {
+    setIsExiting(true);
+    
+    // Store the user's preference
+    localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
+    
+    if (accepted) {
+      initializeAnalytics();
+    } else {
+      removeAnalytics();
+      // Remove any existing cookies
+      document.cookie.split(';').forEach(cookie => {
+        const [name] = cookie.split('=');
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      });
+    }
+
+    // Hide the popup with animation
+    setTimeout(() => {
+      setIsVisible(false);
+    }, 300);
   };
 
   if (!isVisible) return null;
 
   return (
     <div
-      className={`fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50 ${
+      className={`fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50 transition-all duration-300 ${
         showDetails ? 'bg-black/50 backdrop-blur-sm' : ''
       }`}
       onClick={(e) => e.stopPropagation()}
@@ -71,7 +96,7 @@ export function CookieConsent() {
                   </h3>
                 </div>
                 <button
-                  onClick={handleClose}
+                  onClick={() => handleInteraction(false)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <X size={20} />
@@ -79,7 +104,7 @@ export function CookieConsent() {
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                We use cookies to enhance your experience and improve our services.
+                We use cookies to enhance your experience and analyze our traffic. You can choose to accept or decline cookies.
               </p>
 
               <div className="space-y-3">
@@ -101,7 +126,7 @@ export function CookieConsent() {
                   onClick={() => setShowDetails(true)}
                   className="w-full flex items-center justify-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Learn more
+                  Cookie Policy
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -129,28 +154,21 @@ export function CookieConsent() {
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white mb-2">Essential Cookies</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you which amount to a request for services, such as setting your privacy preferences, logging in or filling in forms.
+                    These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you which amount to a request for services.
                   </p>
                 </div>
 
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white mb-2">Analytics Cookies</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Marketing Cookies</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.
+                    These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us understand which pages are popular and how visitors move around the site.
                   </p>
                 </div>
 
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white mb-2">Your Rights</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    You can choose to accept or decline cookies. Most web browsers automatically accept cookies, but you can usually modify your browser settings to decline cookies if you prefer. This may prevent you from taking full advantage of the website.
+                    You can choose to accept or decline cookies. Most web browsers automatically accept cookies, but you can usually modify your browser settings to decline cookies if you prefer.
                   </p>
                 </div>
               </div>
