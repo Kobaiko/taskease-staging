@@ -1,7 +1,8 @@
 import { 
   updateProfile,
   updateEmail,
-  updatePassword
+  updatePassword,
+  deleteUser
 } from 'firebase/auth';
 import { 
   ref, 
@@ -9,7 +10,7 @@ import {
   getDownloadURL,
   deleteObject
 } from 'firebase/storage';
-import { doc, setDoc, getDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { storage, db, auth } from '../lib/firebase';
 
 interface MarketingConsent {
@@ -103,4 +104,52 @@ export async function saveBetaConsent(userId: string, data: BetaConsent) {
     ...data,
     timestamp: new Date()
   });
+}
+
+export async function deleteUserAccount(userId: string) {
+  if (!auth.currentUser) throw new Error('No authenticated user');
+
+  try {
+    // Delete user data from Firestore collections
+    const collections = [
+      'tasks',
+      'credits',
+      'userPreferences',
+      'marketing_consent',
+      'beta_consent',
+      'admins'
+    ];
+
+    for (const collectionName of collections) {
+      // Delete documents where userId matches
+      const q = query(collection(db, collectionName), where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      for (const doc of querySnapshot.docs) {
+        await deleteDoc(doc.ref);
+      }
+
+      // Also try to delete document with userId as the document ID
+      try {
+        await deleteDoc(doc(db, collectionName, userId));
+      } catch (error) {
+        // Ignore errors if document doesn't exist
+        console.log(`No direct document found for user in ${collectionName}`);
+      }
+    }
+
+    // Delete user photos from Storage
+    try {
+      const photoRef = ref(storage, `user-photos/${userId}`);
+      await deleteObject(photoRef);
+    } catch (error) {
+      console.log('No user photos to delete');
+    }
+
+    // Finally, delete the user account
+    await deleteUser(auth.currentUser);
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    throw new Error('Failed to delete account');
+  }
 }

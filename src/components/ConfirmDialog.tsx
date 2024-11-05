@@ -7,12 +7,22 @@ interface ConfirmDialogProps {
   message: string;
   onConfirm: () => void;
   onClose: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  isDangerous?: boolean;
 }
 
-export function ConfirmDialog({ isOpen, title, message, onConfirm, onClose }: ConfirmDialogProps) {
+export function ConfirmDialog({ 
+  isOpen, 
+  title, 
+  message, 
+  onConfirm, 
+  onClose,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  isDangerous = false
+}: ConfirmDialogProps) {
   if (!isOpen) return null;
-
-  const isLogout = title.toLowerCase().includes('logout');
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -31,15 +41,19 @@ export function ConfirmDialog({ isOpen, title, message, onConfirm, onClose }: Co
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="btn btn-secondary"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              Cancel
+              {cancelText}
             </button>
             <button
               onClick={onConfirm}
-              className={`btn btn-primary ${isLogout ? 'bg-red-600 hover:bg-red-700' : ''}`}
+              className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                isDangerous 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              {isLogout ? 'Log Out' : 'Delete'}
+              {confirmText}
             </button>
           </div>
         </div>
