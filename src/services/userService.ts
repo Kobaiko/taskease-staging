@@ -39,6 +39,14 @@ export async function uploadUserPhoto(file: File, userId: string): Promise<strin
     const fileName = `${userId}_${Date.now()}.${fileExtension}`;
     const photoRef = ref(storage, `user-photos/${userId}/${fileName}`);
 
+    // Set custom metadata
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        userId
+      }
+    };
+
     // Delete old photo if it exists
     const currentUser = auth.currentUser;
     if (currentUser.photoURL?.includes('firebasestorage')) {
@@ -53,7 +61,7 @@ export async function uploadUserPhoto(file: File, userId: string): Promise<strin
     }
 
     // Upload new photo
-    await uploadBytes(photoRef, file);
+    await uploadBytes(photoRef, file, metadata);
     const photoURL = await getDownloadURL(photoRef);
 
     // Update user profile
@@ -123,16 +131,19 @@ export async function saveBetaConsent(userId: string, data: BetaConsent) {
 async function deleteUserPhotos(userId: string) {
   try {
     const userPhotosRef = ref(storage, `user-photos/${userId}`);
-    const photosList = await listAll(userPhotosRef).catch(() => ({ items: [] }));
+    const photosList = await listAll(userPhotosRef);
     
-    await Promise.all(
-      photosList.items.map(itemRef => 
-        deleteObject(itemRef).catch(err => {
-          console.log(`Failed to delete photo: ${err.message}`);
-        })
-      )
-    );
+    if (photosList.items.length > 0) {
+      await Promise.all(
+        photosList.items.map(itemRef => 
+          deleteObject(itemRef).catch(err => {
+            console.log(`Failed to delete photo: ${err.message}`);
+          })
+        )
+      );
+    }
   } catch (error) {
+    // Ignore errors if no photos exist
     console.log('No user photos to delete or access denied');
   }
 }
@@ -153,12 +164,18 @@ async function deleteUserDocuments(userId: string) {
       const q = query(collection(db, collectionName), where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
       
-      await Promise.all(
-        querySnapshot.docs.map(doc => deleteDoc(doc.ref))
-      );
+      if (!querySnapshot.empty) {
+        await Promise.all(
+          querySnapshot.docs.map(doc => deleteDoc(doc.ref))
+        );
+      }
 
       // Also try to delete document with userId as the document ID
-      await deleteDoc(doc(db, collectionName, userId)).catch(() => {});
+      const docRef = doc(db, collectionName, userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        await deleteDoc(docRef);
+      }
     } catch (error) {
       console.log(`Error deleting documents from ${collectionName}:`, error);
     }
