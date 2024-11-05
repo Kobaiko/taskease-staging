@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
+import { initializeGoogleAnalytics, removeGoogleAnalytics } from '../lib/analytics';
 
 export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
@@ -11,6 +12,8 @@ export function CookieConsent() {
     if (!hasInteracted) {
       const timer = setTimeout(() => setIsVisible(true), 1500);
       return () => clearTimeout(timer);
+    } else if (hasInteracted === 'accepted') {
+      initializeGoogleAnalytics();
     }
   }, []);
 
@@ -20,7 +23,10 @@ export function CookieConsent() {
       setIsVisible(false);
       localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
       
-      if (!accepted) {
+      if (accepted) {
+        initializeGoogleAnalytics();
+      } else {
+        removeGoogleAnalytics();
         // Remove any existing third-party cookies
         document.cookie.split(';').forEach(cookie => {
           const [name] = cookie.split('=');
