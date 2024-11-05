@@ -78,9 +78,10 @@ export function Dashboard() {
   };
 
   const handleToggleSubTask = async (taskId: string, subTaskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
 
+    const task = tasks[taskIndex];
     const updatedSubTasks = task.subTasks.map(st => 
       st.id === subTaskId ? { ...st, completed: !st.completed } : st
     );
@@ -90,30 +91,48 @@ export function Dashboard() {
       fireConfetti();
     }
 
+    // Update local state first
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = {
+      ...task,
+      subTasks: updatedSubTasks,
+      completed: allCompleted
+    };
+    setTasks(updatedTasks);
+
+    // Then update in the database
     await updateTask(taskId, {
       subTasks: updatedSubTasks,
       completed: allCompleted
     });
-
-    await loadTasks();
   };
 
   const handleDeleteTask = async (taskId: string) => {
     await deleteTask(taskId);
-    await loadTasks();
+    setTasks(tasks.filter(task => task.id !== taskId));
   };
 
   const handleAddSubTask = async (taskId: string, newSubTask: SubTask) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
 
+    const task = tasks[taskIndex];
     const updatedSubTasks = [...task.subTasks, newSubTask];
+
+    // Update local state first
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = {
+      ...task,
+      subTasks: updatedSubTasks,
+      completed: false
+    };
+    setTasks(updatedTasks);
+
+    // Then update in the database
     await updateTask(taskId, {
       subTasks: updatedSubTasks,
       completed: false
     });
-
-    await loadTasks();
   };
 
   const toggleTheme = async () => {
@@ -126,7 +145,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'dark bg-gray-900' : 'bg-gray-200'}`}>
+    <div className={`min-h-screen ${isDark ? 'dark bg-gray-900' : 'bg-gray-200'}`}>
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
