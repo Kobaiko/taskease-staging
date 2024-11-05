@@ -7,61 +7,38 @@ export function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    // Show the consent popup after a short delay if no preference is stored
-    const hasInteracted = localStorage.getItem('cookieConsent');
-    if (!hasInteracted) {
-      const timer = setTimeout(() => setIsVisible(true), 1000);
-      return () => clearTimeout(timer);
+    // Check if user has already made a choice
+    const hasConsent = localStorage.getItem('cookieConsent');
+    if (!hasConsent) {
+      // Show the consent popup immediately
+      setIsVisible(true);
     }
   }, []);
 
   const initializeAnalytics = () => {
-    const script1 = document.createElement('script');
-    script1.async = true;
-    script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-CEDBMXRBYX';
-    document.head.appendChild(script1);
-
-    const script2 = document.createElement('script');
-    script2.innerHTML = `
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-CEDBMXRBYX');
-    `;
-    document.head.appendChild(script2);
-  };
-
-  const removeAnalytics = () => {
-    const scripts = document.getElementsByTagName('script');
-    for (let i = scripts.length - 1; i >= 0; i--) {
-      const script = scripts[i];
-      if (
-        script.src.includes('googletagmanager.com/gtag') ||
-        script.innerHTML.includes('gtag')
-      ) {
-        script.remove();
-      }
-    }
+    // Initialize GA
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-CEDBMXRBYX');
   };
 
   const handleInteraction = (accepted: boolean) => {
     setIsExiting(true);
     
-    // Store the user's preference
     localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
     
     if (accepted) {
       initializeAnalytics();
     } else {
-      removeAnalytics();
-      // Remove any existing cookies
+      // Clear cookies
       document.cookie.split(';').forEach(cookie => {
         const [name] = cookie.split('=');
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
       });
     }
 
-    // Hide the popup with animation
+    // Hide with animation
     setTimeout(() => {
       setIsVisible(false);
     }, 300);
@@ -74,7 +51,6 @@ export function CookieConsent() {
       className={`fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50 transition-all duration-300 ${
         showDetails ? 'bg-black/50 backdrop-blur-sm' : ''
       }`}
-      onClick={(e) => e.stopPropagation()}
     >
       <div
         className={`relative w-full ${
