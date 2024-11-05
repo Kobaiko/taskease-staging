@@ -2,7 +2,9 @@ import {
   updateProfile,
   updateEmail,
   updatePassword,
-  deleteUser
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 import { 
   ref, 
@@ -79,6 +81,12 @@ export async function updateUserPassword(newPassword: string) {
   await updatePassword(auth.currentUser, newPassword);
 }
 
+export async function reauthenticateUser(password: string) {
+  if (!auth.currentUser?.email) throw new Error('No authenticated user');
+  const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+  await reauthenticateWithCredential(auth.currentUser, credential);
+}
+
 export async function saveUserTheme(userId: string, isDark: boolean) {
   const userPrefsRef = doc(db, 'userPreferences', userId);
   await setDoc(userPrefsRef, { theme: isDark ? 'dark' : 'light' }, { merge: true });
@@ -116,8 +124,7 @@ export async function deleteUserAccount(userId: string) {
       'credits',
       'userPreferences',
       'marketing_consent',
-      'beta_consent',
-      'admins'
+      'beta_consent'
     ];
 
     for (const collectionName of collections) {
