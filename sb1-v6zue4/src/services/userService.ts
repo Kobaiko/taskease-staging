@@ -10,7 +10,8 @@ import {
   ref, 
   uploadBytes, 
   getDownloadURL,
-  deleteObject
+  deleteObject,
+  listAll
 } from 'firebase/storage';
 import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { storage, db, auth } from '../lib/firebase';
@@ -87,9 +88,9 @@ export async function reauthenticateUser(password: string) {
   await reauthenticateWithCredential(auth.currentUser, credential);
 }
 
-export async function saveUserTheme(userId: string, isDark: boolean) {
+export async function saveUserTheme(userId: string, theme: 'dark' | 'light') {
   const userPrefsRef = doc(db, 'userPreferences', userId);
-  await setDoc(userPrefsRef, { theme: isDark ? 'dark' : 'light' }, { merge: true });
+  await setDoc(userPrefsRef, { theme }, { merge: true });
 }
 
 export async function getUserTheme(userId: string): Promise<'dark' | 'light' | null> {
@@ -124,11 +125,13 @@ export async function deleteUserAccount(userId: string) {
       'credits',
       'userPreferences',
       'marketing_consent',
-      'beta_consent'
+      'beta_consent',
+      'admins'
     ];
 
+    // Delete all documents where userId matches
     for (const collectionName of collections) {
-      // Delete documents where userId matches
+      // Delete documents where userId is a field
       const q = query(collection(db, collectionName), where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
       
@@ -145,16 +148,22 @@ export async function deleteUserAccount(userId: string) {
       }
     }
 
-    // Delete user photos from Storage
+    // Delete all user photos from Storage
     try {
-      const photoRef = ref(storage, `user-photos/${userId}`);
-      await deleteObject(photoRef);
+      const userPhotosRef = ref(storage, `user-photos/${userId}`);
+      const photosList = await listAll(userPhotosRef);
+      
+      // Delete all files in the user's photos directory
+      await Promise.all(
+        photosList.items.map(itemRef => deleteObject(itemRef))
+      );
     } catch (error) {
       console.log('No user photos to delete');
     }
 
-    // Finally, delete the user account
+    // Finally, delete the user authentication account
     await deleteUser(auth.currentUser);
+
   } catch (error) {
     console.error('Error deleting user account:', error);
     throw new Error('Failed to delete account');

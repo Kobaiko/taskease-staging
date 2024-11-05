@@ -1,6 +1,5 @@
 import React from 'react';
 import { Layout, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export function AccountDeleted() {
   return (
@@ -27,15 +26,15 @@ export function AccountDeleted() {
               <Mail size={16} />
               hello@gotaskease.com
             </a>
-            {' '}for any query and we'd love to see you back in the future.
+            {' '}with any query, and we'd love to see you back in the future.
           </p>
 
-          <Link
-            to="/register"
+          <a
+            href="https://gettaskease.com"
             className="inline-block w-full py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Create New Account
-          </Link>
+            Go Home
+          </a>
         </div>
       </div>
     </div>
