@@ -189,8 +189,11 @@ export function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">TaskEase</h1>
+              <div className="flex items-center">
+                <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-white ml-2">TaskEase</h1>
+                <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
+              </div>
               <CreditDisplay credits={credits} />
               <button
                 onClick={toggleTheme}

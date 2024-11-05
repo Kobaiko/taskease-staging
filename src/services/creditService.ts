@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import type { UserCredits } from '../types';
 
 const CREDITS_COLLECTION = 'credits';
-const INITIAL_CREDITS = 20;
+const INITIAL_CREDITS = 3;
 
 export async function initializeUserCredits(userId: string): Promise<void> {
   const creditRef = doc(db, CREDITS_COLLECTION, userId);

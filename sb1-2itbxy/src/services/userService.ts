@@ -9,8 +9,15 @@ import {
   getDownloadURL,
   deleteObject
 } from 'firebase/storage';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection } from 'firebase/firestore';
 import { storage, db, auth } from '../lib/firebase';
+
+interface MarketingConsent {
+  email: string;
+  displayName: string;
+  marketingConsent: boolean;
+  timestamp: Date;
+}
 
 export async function uploadUserPhoto(file: File, userId: string): Promise<string> {
   if (!auth.currentUser) throw new Error('No authenticated user');
@@ -73,4 +80,12 @@ export async function getUserTheme(userId: string): Promise<'dark' | 'light' | n
   const userPrefsRef = doc(db, 'userPreferences', userId);
   const userPrefs = await getDoc(userPrefsRef);
   return userPrefs.exists() ? userPrefs.data().theme : null;
+}
+
+export async function saveMarketingConsent(userId: string, data: MarketingConsent) {
+  const marketingRef = doc(collection(db, 'marketing_consent'), userId);
+  await setDoc(marketingRef, {
+    ...data,
+    timestamp: new Date()
+  });
 }

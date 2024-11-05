@@ -3,18 +3,13 @@ import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
   signOut,
   onAuthStateChanged,
   updateProfile,
-  linkWithPopup,
-  fetchSignInMethodsForEmail,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  GoogleAuthProvider
+  EmailAuthProvider
 } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { initializeFirstAdmin } from '../services/adminService';
 import { initializeUserCredits } from '../services/creditService';
 
@@ -22,8 +17,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<User>;
   logout: () => Promise<void>;
   reauthenticate: (password: string) => Promise<void>;
 }
@@ -64,10 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (methods.includes('google.com')) {
-        throw new Error('This email is registered with Google. Please sign in with Google.');
-      }
       await signInWithEmailAndPassword(auth, email, password);
       navigate('/');
     } catch (error: any) {
@@ -79,67 +69,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string, displayName: string) {
-    try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      
-      if (methods.length > 0) {
-        if (methods.includes('google.com')) {
-          throw new Error('This email is already registered with Google. Please sign in with Google.');
-        } else {
-          throw new Error('This email is already registered. Please sign in instead.');
-        }
-      }
-
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(user, { displayName });
-      await initializeUserCredits(user.uid);
-      navigate('/');
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async function signInWithGoogle() {
-    try {
-      // Configure Google provider for better popup handling
-      googleProvider.setCustomParameters({
-        prompt: 'select_account'
-      });
-
-      const result = await signInWithPopup(auth, googleProvider);
-      const { user } = result;
-      
-      if (!user.email) {
-        throw new Error('No email found in Google account');
-      }
-
-      // Initialize credits for new users
-      await initializeUserCredits(user.uid);
-
-      // Update display name if not set
-      if (!user.displayName) {
-        await updateProfile(user, { 
-          displayName: user.email.split('@')[0] 
-        });
-      }
-
-      navigate('/');
-    } catch (error: any) {
-      if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup was blocked. Please allow popups for this site and try again.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        throw new Error('Sign in was cancelled. Please try again.');
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-        throw new Error('An account already exists with this email. Please sign in with email/password.');
-      }
-      throw error;
-    }
+    const { user } = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(user, { displayName });
+    await initializeUserCredits(user.uid);
+    return user;
   }
 
   async function reauthenticate(password: string) {
     if (!currentUser?.email) throw new Error('No user email found');
     const credential = EmailAuthProvider.credential(currentUser.email, password);
-    await reauthenticateWithCredential(currentUser, credential);
+    await reauthenticate(credential);
   }
 
   async function logout() {
@@ -157,7 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signIn,
     signUp,
-    signInWithGoogle,
     logout,
     reauthenticate
   };
