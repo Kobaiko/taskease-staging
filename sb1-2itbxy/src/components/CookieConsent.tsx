@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 
 export function CookieConsent() {
@@ -7,60 +7,41 @@ export function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    const hasConsent = localStorage.getItem('cookieConsent');
-    if (!hasConsent) {
+    const consent = localStorage.getItem('cookieConsent');
+    if (!consent) {
       setIsVisible(true);
-    }
-
-    return () => {
-      setIsVisible(false);
-      setIsExiting(false);
-    };
-  }, []);
-
-  const initializeAnalytics = useCallback(() => {
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('js', new Date());
-      window.gtag('config', 'G-CEDBMXRBYX');
+    } else if (consent === 'accepted') {
+      window.gtag?.('consent', 'update', {
+        'analytics_storage': 'granted'
+      });
     }
   }, []);
 
-  const handleInteraction = useCallback((accepted: boolean) => {
+  const handleInteraction = (accepted: boolean) => {
     setIsExiting(true);
     localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
 
     if (accepted) {
-      initializeAnalytics();
-    } else {
-      document.cookie.split(';').forEach(cookie => {
-        const [name] = cookie.split('=');
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+      window.gtag?.('consent', 'update', {
+        'analytics_storage': 'granted'
       });
     }
 
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       setIsVisible(false);
-      setIsExiting(false);
     }, 300);
-
-    return () => clearTimeout(timer);
-  }, [initializeAnalytics]);
+  };
 
   if (!isVisible) return null;
 
   return (
-    <div
-      className={`fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50 transition-all duration-300 ${
-        showDetails ? 'bg-black/50 backdrop-blur-sm' : ''
-      }`}
-    >
+    <div className="fixed inset-0 flex items-end sm:items-center justify-center p-4 z-50">
       <div
         className={`relative w-full ${
           showDetails ? 'max-w-2xl' : 'max-w-sm sm:absolute sm:bottom-4 sm:left-4'
         } bg-white dark:bg-gray-800 rounded-xl shadow-xl transition-all duration-300 ${
           isExiting ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
         }`}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           {!showDetails ? (
@@ -71,7 +52,7 @@ export function CookieConsent() {
                     🍪
                   </span>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    We use cookies
+                    Cookie Settings
                   </h3>
                 </div>
                 <button
@@ -83,7 +64,7 @@ export function CookieConsent() {
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                We use cookies to enhance your experience and analyze our traffic. You can choose to accept or decline cookies.
+                We use cookies to analyze our traffic and improve your experience. You can choose to accept or decline cookies.
               </p>
 
               <div className="space-y-3">
@@ -92,7 +73,7 @@ export function CookieConsent() {
                     onClick={() => handleInteraction(true)}
                     className="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Accept all cookies
+                    Accept
                   </button>
                   <button
                     onClick={() => handleInteraction(false)}
@@ -105,7 +86,7 @@ export function CookieConsent() {
                   onClick={() => setShowDetails(true)}
                   className="w-full flex items-center justify-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Cookie Policy
+                  Learn More
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -131,23 +112,16 @@ export function CookieConsent() {
 
               <div className="space-y-6 mb-6">
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Essential Cookies</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you which amount to a request for services.
-                  </p>
-                </div>
-
-                <div>
                   <h4 className="font-medium text-gray-900 dark:text-white mb-2">Analytics Cookies</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us understand which pages are popular and how visitors move around the site.
+                    These cookies help us understand how visitors interact with our website. All data collected is anonymous and helps us improve our services.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Your Rights</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Your Choice</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    You can choose to accept or decline cookies. Most web browsers automatically accept cookies, but you can usually modify your browser settings to decline cookies if you prefer.
+                    You can choose to accept or decline cookies. If you decline, we'll respect your choice and no analytics data will be collected.
                   </p>
                 </div>
               </div>
@@ -157,7 +131,7 @@ export function CookieConsent() {
                   onClick={() => handleInteraction(true)}
                   className="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Accept all cookies
+                  Accept
                 </button>
                 <button
                   onClick={() => handleInteraction(false)}

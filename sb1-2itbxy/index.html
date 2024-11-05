@@ -10,14 +10,15 @@
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
-        window.dataLayer.push(arguments);
+        dataLayer.push(arguments);
       }
-      
-      // Only initialize GA if consent was given
-      if (localStorage.getItem('cookieConsent') === 'accepted') {
-        gtag('js', new Date());
-        gtag('config', 'G-CEDBMXRBYX');
-      }
+      gtag('js', new Date());
+      gtag('consent', 'default', {
+        'analytics_storage': 'denied'
+      });
+      gtag('config', 'G-CEDBMXRBYX', {
+        'anonymize_ip': true
+      });
     </script>
   </head>
   <body>
