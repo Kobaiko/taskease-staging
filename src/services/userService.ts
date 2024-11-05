@@ -148,17 +148,21 @@ export async function deleteUserAccount(userId: string) {
       }
     }
 
-    // Delete all user photos from Storage
+    // Delete user photos from Storage
     try {
       const userPhotosRef = ref(storage, `user-photos/${userId}`);
-      const photosList = await listAll(userPhotosRef);
+      const photosList = await listAll(userPhotosRef).catch(() => ({ items: [] }));
       
       // Delete all files in the user's photos directory
       await Promise.all(
-        photosList.items.map(itemRef => deleteObject(itemRef))
+        photosList.items.map(itemRef => 
+          deleteObject(itemRef).catch(err => {
+            console.log(`Failed to delete photo: ${err.message}`);
+          })
+        )
       );
     } catch (error) {
-      console.log('No user photos to delete');
+      console.log('No user photos to delete or access denied');
     }
 
     // Finally, delete the user authentication account
