@@ -6,7 +6,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  EmailAuthProvider
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../lib/firebase';
@@ -35,7 +36,6 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function reauthenticate(password: string) {
     if (!currentUser?.email) throw new Error('No user email found');
     const credential = EmailAuthProvider.credential(currentUser.email, password);
-    await reauthenticate(credential);
+    await reauthenticateWithCredential(currentUser, credential);
   }
 
   async function logout() {
@@ -99,10 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     reauthenticate
   };
-
-  if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
-  }
 
   return (
     <AuthContext.Provider value={value}>
