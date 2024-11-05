@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 
 export function CookieConsent() {
@@ -7,42 +7,44 @@ export function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    // Check if user has already made a choice
     const hasConsent = localStorage.getItem('cookieConsent');
     if (!hasConsent) {
-      // Show the consent popup immediately
       setIsVisible(true);
+    }
+
+    return () => {
+      setIsVisible(false);
+      setIsExiting(false);
+    };
+  }, []);
+
+  const initializeAnalytics = useCallback(() => {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('js', new Date());
+      window.gtag('config', 'G-CEDBMXRBYX');
     }
   }, []);
 
-  const initializeAnalytics = () => {
-    // Initialize GA
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-CEDBMXRBYX');
-  };
-
-  const handleInteraction = (accepted: boolean) => {
+  const handleInteraction = useCallback((accepted: boolean) => {
     setIsExiting(true);
-    
     localStorage.setItem('cookieConsent', accepted ? 'accepted' : 'declined');
-    
+
     if (accepted) {
       initializeAnalytics();
     } else {
-      // Clear cookies
       document.cookie.split(';').forEach(cookie => {
         const [name] = cookie.split('=');
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
       });
     }
 
-    // Hide with animation
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setIsVisible(false);
+      setIsExiting(false);
     }, 300);
-  };
+
+    return () => clearTimeout(timer);
+  }, [initializeAnalytics]);
 
   if (!isVisible) return null;
 
@@ -58,6 +60,7 @@ export function CookieConsent() {
         } bg-white dark:bg-gray-800 rounded-xl shadow-xl transition-all duration-300 ${
           isExiting ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           {!showDetails ? (
