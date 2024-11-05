@@ -3,7 +3,7 @@ import { X, LogOut, Mail, Lock, AlertCircle, Settings, Trash2 } from 'lucide-rea
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PhotoUpload } from './PhotoUpload';
-import { updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount } from '../services/userService';
+import { updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount, reauthenticateUser } from '../services/userService';
 import { isUserAdmin } from '../services/adminService';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -13,7 +13,7 @@ interface ProfilePopupProps {
 }
 
 export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
-  const { currentUser, logout, reauthenticate } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [newEmail, setNewEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -66,7 +66,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     try {
       setIsSaving(true);
       setError('');
-      await reauthenticate(currentPassword);
+      await reauthenticateUser(currentPassword);
       await updateUserEmail(newEmail);
       setSuccess('Email updated successfully');
       setNewEmail('');
@@ -96,7 +96,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     try {
       setIsSaving(true);
       setError('');
-      await reauthenticate(currentPassword);
+      await reauthenticateUser(currentPassword);
       await updateUserPassword(newPassword);
       setSuccess('Password updated successfully');
       setCurrentPassword('');
@@ -128,11 +128,15 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const handleDeleteAccount = async () => {
     try {
       if (!currentUser) return;
+      setIsSaving(true);
       await deleteUserAccount(currentUser.uid);
-      navigate('/account-deleted');
+      onClose(); // Close the profile popup
+      navigate('/account-deleted', { replace: true }); // Use replace to prevent going back
     } catch (err) {
       setError('Failed to delete account. Please try again.');
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -328,6 +332,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full mt-2 py-2 flex items-center justify-center gap-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400 text-xs"
+                  disabled={isSaving}
                 >
                   <Trash2 size={14} />
                   Delete my account
