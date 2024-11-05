@@ -33,18 +33,20 @@ interface BetaConsent {
 export async function uploadUserPhoto(file: File, userId: string): Promise<string> {
   if (!auth.currentUser) throw new Error('No authenticated user');
 
-  // Create a reference to the new photo
-  const fileExtension = file.name.split('.').pop();
-  const fileName = `${userId}_${Date.now()}.${fileExtension}`;
-  const photoRef = ref(storage, `user-photos/${userId}/${fileName}`);
-
   try {
+    // Create a reference to the new photo
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${userId}_${Date.now()}.${fileExtension}`;
+    const photoRef = ref(storage, `user-photos/${userId}/${fileName}`);
+
     // Delete old photo if it exists
     const currentUser = auth.currentUser;
     if (currentUser.photoURL?.includes('firebasestorage')) {
       try {
         const oldPhotoRef = ref(storage, currentUser.photoURL);
-        await deleteObject(oldPhotoRef);
+        await deleteObject(oldPhotoRef).catch(() => {
+          console.log('Old photo not found or already deleted');
+        });
       } catch (error) {
         console.error('Error deleting old photo:', error);
       }
@@ -58,8 +60,11 @@ export async function uploadUserPhoto(file: File, userId: string): Promise<strin
     await updateProfile(currentUser, { photoURL });
 
     return photoURL;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in uploadUserPhoto:', error);
+    if (error.code === 'storage/unauthorized' || error.code === 'storage/cors-error') {
+      throw new Error('Unable to access storage. Please try again later.');
+    }
     throw new Error('Failed to upload photo');
   }
 }
@@ -115,61 +120,65 @@ export async function saveBetaConsent(userId: string, data: BetaConsent) {
   });
 }
 
-export async function deleteUserAccount(userId: string) {
-  if (!auth.currentUser) throw new Error('No authenticated user');
-
+async function deleteUserPhotos(userId: string) {
   try {
-    // Delete user data from Firestore collections
-    const collections = [
-      'tasks',
-      'credits',
-      'userPreferences',
-      'marketing_consent',
-      'beta_consent',
-      'admins'
-    ];
+    const userPhotosRef = ref(storage, `user-photos/${userId}`);
+    const photosList = await listAll(userPhotosRef).catch(() => ({ items: [] }));
+    
+    await Promise.all(
+      photosList.items.map(itemRef => 
+        deleteObject(itemRef).catch(err => {
+          console.log(`Failed to delete photo: ${err.message}`);
+        })
+      )
+    );
+  } catch (error) {
+    console.log('No user photos to delete or access denied');
+  }
+}
 
-    // Delete all documents where userId matches
-    for (const collectionName of collections) {
+async function deleteUserDocuments(userId: string) {
+  const collections = [
+    'tasks',
+    'credits',
+    'userPreferences',
+    'marketing_consent',
+    'beta_consent',
+    'admins'
+  ];
+
+  for (const collectionName of collections) {
+    try {
       // Delete documents where userId is a field
       const q = query(collection(db, collectionName), where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
       
-      for (const doc of querySnapshot.docs) {
-        await deleteDoc(doc.ref);
-      }
+      await Promise.all(
+        querySnapshot.docs.map(doc => deleteDoc(doc.ref))
+      );
 
       // Also try to delete document with userId as the document ID
-      try {
-        await deleteDoc(doc(db, collectionName, userId));
-      } catch (error) {
-        // Ignore errors if document doesn't exist
-        console.log(`No direct document found for user in ${collectionName}`);
-      }
-    }
-
-    // Delete user photos from Storage
-    try {
-      const userPhotosRef = ref(storage, `user-photos/${userId}`);
-      const photosList = await listAll(userPhotosRef).catch(() => ({ items: [] }));
-      
-      // Delete all files in the user's photos directory
-      await Promise.all(
-        photosList.items.map(itemRef => 
-          deleteObject(itemRef).catch(err => {
-            console.log(`Failed to delete photo: ${err.message}`);
-          })
-        )
-      );
+      await deleteDoc(doc(db, collectionName, userId)).catch(() => {});
     } catch (error) {
-      console.log('No user photos to delete or access denied');
+      console.log(`Error deleting documents from ${collectionName}:`, error);
     }
+  }
+}
+
+export async function deleteUserAccount(userId: string) {
+  if (!auth.currentUser) throw new Error('No authenticated user');
+
+  try {
+    // Delete user data in parallel
+    await Promise.all([
+      deleteUserDocuments(userId),
+      deleteUserPhotos(userId)
+    ]);
 
     // Finally, delete the user authentication account
     await deleteUser(auth.currentUser);
-
   } catch (error) {
     console.error('Error deleting user account:', error);
-    throw new Error('Failed to delete account');
+    throw new Error('Failed to delete account. Please try again.');
   }
 }
