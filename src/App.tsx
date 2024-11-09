@@ -8,7 +8,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { UserProfile } from './pages/UserProfile';
 import { AccountDeleted } from './pages/AccountDeleted';
-import { testApiConnection } from './api'; // Add this import
+import { testApiConnection } from './services/api'; // Updated import path
 
 export default function App() {
   useEffect(() => {

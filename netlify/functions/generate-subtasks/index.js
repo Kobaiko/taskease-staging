@@ -4,35 +4,52 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-export const handler = async (event, context) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
+export const handler = async (event) => {
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://app.gettaskease.com',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
+    console.log('Received event:', { 
+      method: event.httpMethod,
+      headers: event.headers
+    });
+
     // Parse the incoming request body
     const { title, description } = JSON.parse(event.body);
 
     if (!title || !description) {
       return {
         statusCode: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: 'Missing required fields',
           details: 'Both title and description are required'
         })
       };
     }
+
+    console.log('Processing request for:', { title, description });
 
     const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
     Task: ${title}
@@ -54,8 +71,12 @@ export const handler = async (event, context) => {
       temperature: 0.7,
     });
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    if (!completion.choices[0]?.message?.content) {
+      throw new Error('No response received from OpenAI');
+    }
 
+    const result = JSON.parse(completion.choices[0].message.content);
+    
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
     }
@@ -66,29 +87,23 @@ export const handler = async (event, context) => {
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
 
+    console.log('Generated subtasks:', sanitizedSubtasks);
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ subtasks: sanitizedSubtasks }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://app.gettaskease.com',
-        'Access-Control-Allow-Credentials': 'true'
-      }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtasks: sanitizedSubtasks })
     };
 
   } catch (error) {
     console.error('Function error:', error);
     return {
       statusCode: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Failed to generate subtasks',
         details: error.message
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://app.gettaskease.com',
-        'Access-Control-Allow-Credentials': 'true'
-      }
+      })
     };
   }
 };
