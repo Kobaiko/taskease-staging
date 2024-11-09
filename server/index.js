@@ -16,7 +16,7 @@ const port = process.env.PORT || 3001;
 
 // Enable CORS for development
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:3001'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -85,6 +85,11 @@ app.post('/api/generate-subtasks', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 // Handle all other routes by serving the index.html

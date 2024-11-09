@@ -1,13 +1,8 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
-
 export async function generateSubtasks(title: string, description: string) {
   try {
-    const response = await fetch('/api/generate-subtasks', {
+    const response = await fetch('http://localhost:3001/api/generate-subtasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16,11 +11,23 @@ export async function generateSubtasks(title: string, description: string) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.details || 'Failed to generate subtasks');
+      let errorMessage = 'Failed to generate subtasks';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.details || errorData.error || errorMessage;
+      } catch {
+        // If JSON parsing fails, use status text
+        errorMessage = `${errorMessage}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    
+    if (!data.subtasks || !Array.isArray(data.subtasks)) {
+      throw new Error('Invalid response format from server');
+    }
+
     return data.subtasks.map((subtask: any) => ({
       id: crypto.randomUUID(),
       title: subtask.title,
