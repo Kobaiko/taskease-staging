@@ -20,6 +20,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.static(join(__dirname, '../dist')));
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -88,6 +89,11 @@ Example:
       message: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
+});
+
+// Handle all other routes by serving the index.html
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, '../dist/index.html'));
 });
 
 app.listen(port, () => {
