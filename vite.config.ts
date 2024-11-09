@@ -4,19 +4,18 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
+    port: 5173,
     proxy: {
       '/api': {
-        target: process.env.NODE_ENV === 'production' 
-          ? 'https://app.gettaskease.com'
-          : 'http://localhost:3001',
+        target: 'https://app.gettaskease.com',
         changeOrigin: true,
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
       }
     }
   },
   build: {
     outDir: 'dist',
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -25,8 +24,5 @@ export default defineConfig({
         }
       }
     }
-  },
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   }
 });

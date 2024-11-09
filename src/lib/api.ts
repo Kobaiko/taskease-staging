@@ -1,6 +1,6 @@
-import OpenAI from 'openai';
+import type { SubTask } from '../types';
 
-export async function generateSubtasks(title: string, description: string) {
+export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
     const response = await fetch('/api/generate-subtasks', {
       method: 'POST',
@@ -12,27 +12,28 @@ export async function generateSubtasks(title: string, description: string) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to generate subtasks');
+      const errorData = await response.json().catch(() => ({
+        error: 'Unknown error',
+        details: 'Failed to parse error response'
+      }));
+      
+      throw new Error(errorData.details || errorData.error || 'Failed to generate subtasks');
     }
 
     const data = await response.json();
     
-    if (!data.subtasks || !Array.isArray(data.subtasks)) {
+    if (!data || !data.subtasks || !Array.isArray(data.subtasks)) {
       throw new Error('Invalid response format from server');
     }
 
     return data.subtasks.map(subtask => ({
       id: crypto.randomUUID(),
-      title: subtask.title,
-      estimatedTime: Math.min(subtask.estimatedTime, 60),
+      title: String(subtask.title),
+      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60),
       completed: false
     }));
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate subtasks: ${error.message}`);
-    }
-    throw new Error('Failed to generate subtasks. Please try again.');
+    throw new Error(`Failed to generate subtasks: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
