@@ -32,7 +32,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     
     if (credits <= 0) {
       setError('No credits remaining. Please add subtasks manually.');
-      setShowAddManual(true);
       return;
     }
 
@@ -50,8 +49,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       onCreditsUpdate();
     } catch (error) {
       console.error('Error generating subtasks:', error);
-      setError('Failed to generate subtasks. Please try adding them manually.');
-      setShowAddManual(true);
+      setError(error instanceof Error ? error.message : 'Failed to generate subtasks');
     } finally {
       setIsGenerating(false);
     }
@@ -213,7 +211,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                   ))}
 
                   {showAddManual && (
-                    <div className="grid grid-cols-[1fr,auto,auto] gap-2">
+                    <div key="add-subtask-form" className="grid grid-cols-[1fr,auto,auto] gap-2">
                       <input
                         type="text"
                         value={newSubTask.title}
@@ -240,6 +238,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
                   {subTasks.length > 0 && !showAddManual && (
                     <button
+                      key="add-subtask-button"
                       type="button"
                       onClick={() => setShowAddManual(true)}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
