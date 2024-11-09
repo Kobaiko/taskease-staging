@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 
 export async function generateSubtasks(title: string, description: string) {
   try {
-    const response = await fetch('https://app.gettaskease.com/api/generate-subtasks', {
+    const response = await fetch('/api/generate-subtasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

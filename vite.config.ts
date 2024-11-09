@@ -8,20 +8,20 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://app.gettaskease.com',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true
   },
   resolve: {
     alias: {
       '@': join(__dirname, 'src')
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true
   }
 });
