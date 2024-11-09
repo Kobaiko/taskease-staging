@@ -19,13 +19,18 @@ export async function generateSubtasks(title: string, description: string): Prom
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, description }),
-      credentials: 'include'
+      body: JSON.stringify({ title, description })
     });
 
     if (!response.ok) {
-      const errorData = await response.json() as APIError;
-      throw new Error(errorData.message || `Failed to generate subtasks: ${response.statusText}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json() as APIError;
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        console.error('Failed to parse error response:', e);
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json() as APIResponse;
@@ -42,9 +47,6 @@ export async function generateSubtasks(title: string, description: string): Prom
     }));
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate subtasks: ${error.message}`);
-    }
-    throw new Error('Failed to generate subtasks');
+    throw new Error(error instanceof Error ? error.message : 'Failed to generate subtasks');
   }
 }
