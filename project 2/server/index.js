@@ -14,8 +14,20 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'https://app.gettaskease.com'
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 

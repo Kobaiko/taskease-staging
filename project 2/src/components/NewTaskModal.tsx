@@ -41,16 +41,16 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     
     try {
       await deductCredit(currentUser.uid);
-      const generatedSubtasks = await generateSubtasks(title, description, subTasks);
-      setSubTasks([...subTasks, ...generatedSubtasks.map(st => ({
+      const generatedSubtasks = await generateSubtasks(title, description);
+      setSubTasks(generatedSubtasks.map(st => ({
         ...st,
         id: crypto.randomUUID()
-      }))]);
+      })));
       setShowAddManual(true);
       onCreditsUpdate();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating subtasks:', error);
-      setError(error?.message || 'Failed to generate subtasks. Please try adding them manually.');
+      setError('Failed to generate subtasks. Please try adding them manually.');
       setShowAddManual(true);
     } finally {
       setIsGenerating(false);
@@ -168,6 +168,22 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 />
               </div>
 
+              {!subTasks.length && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleGenerateSubtasks}
+                    disabled={!title || !description || isGenerating || credits <= 0}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate Subtasks'}
+                  </button>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    {credits} credits remaining
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
                   Subtasks
@@ -196,7 +212,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </div>
                   ))}
 
-                  {(showAddManual || subTasks.length > 0) && (
+                  {showAddManual && (
                     <div className="grid grid-cols-[1fr,auto,auto] gap-2">
                       <input
                         type="text"
@@ -222,25 +238,14 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </div>
                   )}
 
-                  {!showAddManual && (
+                  {subTasks.length > 0 && !showAddManual && (
                     <button
                       type="button"
                       onClick={() => setShowAddManual(true)}
-                      className="w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center justify-center gap-1"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
                     >
                       <Plus size={16} />
-                      Add Subtasks Manually
-                    </button>
-                  )}
-
-                  {(title && description && !isGenerating) && (
-                    <button
-                      type="button"
-                      onClick={handleGenerateSubtasks}
-                      disabled={isGenerating}
-                      className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? 'Generating...' : credits > 0 ? 'Generate More Subtasks' : 'No Credits Remaining'}
+                      Add Subtask
                     </button>
                   )}
                 </div>

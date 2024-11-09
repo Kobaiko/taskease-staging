@@ -1,22 +1,19 @@
-import OpenAI from 'openai';
 import type { SubTask } from '../types';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://app.gettaskease.com/api'
+  : 'http://localhost:3001/api';
 
-export async function generateSubtasks(title: string, description: string, existingSubtasks: SubTask[] = []) {
+export async function generateSubtasks(title: string, description: string) {
   try {
-    const response = await fetch('/api/generate-subtasks', {
+    const response = await fetch(`${API_URL}/generate-subtasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         title,
-        description,
-        existingSubtasks
+        description
       }),
     });
 
