@@ -11,6 +11,12 @@ const __dirname = dirname(__filename);
 // Load environment variables from the root directory
 dotenv.config({ path: join(__dirname, '../.env') });
 
+// Validate required environment variables
+if (!process.env.VITE_OPENAI_API_KEY) {
+  console.error('Error: VITE_OPENAI_API_KEY environment variable is missing');
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -22,7 +28,8 @@ app.use(cors({
 app.use(express.json());
 
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY
+  apiKey: process.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: false
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {
