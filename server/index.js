@@ -13,13 +13,10 @@ dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
-const isDev = process.env.NODE_ENV !== 'production';
 
-// Enable CORS with environment-specific options
+// Enable CORS for production
 app.use(cors({
-  origin: isDev 
-    ? ['http://localhost:5173', 'http://localhost:3001']
-    : ['https://app.gettaskease.com'],
+  origin: 'https://app.gettaskease.com',
   methods: ['GET', 'POST'],
   credentials: true,
   optionsSuccessStatus: 204
@@ -45,9 +42,8 @@ app.use((req, res, next) => {
     "https://api.openai.com",
     "https://*.firebaseio.com",
     "https://*.googleapis.com",
-    "https://www.google-analytics.com",
-    isDev ? "ws://localhost:*" : null // WebSocket for dev server
-  ].filter(Boolean);
+    "https://www.google-analytics.com"
+  ];
 
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
@@ -63,11 +59,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-
-// Only serve static files in production
-if (!isDev) {
-  app.use(express.static(join(__dirname, '../dist')));
-}
+app.use(express.static(join(__dirname, '../dist')));
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -138,13 +130,11 @@ Example:
   }
 });
 
-// Handle all other routes by serving the index.html in production
-if (!isDev) {
-  app.get('*', (req, res) => {
-    res.sendFile(join(__dirname, '../dist/index.html'));
-  });
-}
+// Handle all other routes by serving the index.html
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, '../dist/index.html'));
+});
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port} in ${isDev ? 'development' : 'production'} mode`);
+  console.log(`Server running on port ${port} in production mode`);
 });

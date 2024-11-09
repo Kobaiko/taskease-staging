@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = 'https://app.gettaskease.com';
 
 export async function generateSubtasks(title: string, description: string) {
   try {
