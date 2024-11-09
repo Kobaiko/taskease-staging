@@ -2,7 +2,7 @@ import type { SubTask } from '../types';
 
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
-    const response = await fetch('/api/generate-subtasks', {
+    const response = await fetch('https://app.gettaskease.com/api/generate-subtasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -14,10 +14,10 @@ export async function generateSubtasks(title: string, description: string): Prom
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
         error: 'Unknown error',
-        details: 'Failed to parse error response'
+        details: `Server responded with status ${response.status}`
       }));
       
-      throw new Error(errorData.details || errorData.error || 'Failed to generate subtasks');
+      throw new Error(errorData.details || errorData.error || `Failed to generate subtasks: ${response.statusText}`);
     }
 
     const data = await response.json();

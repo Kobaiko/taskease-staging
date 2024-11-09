@@ -14,6 +14,24 @@ dotenv.config({ path: join(__dirname, '../.env') });
 const app = express();
 const port = process.env.PORT || 3001;
 
+// CORS configuration
+app.use(cors({
+  origin: 'https://app.gettaskease.com',
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Request parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ADDED: Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Basic security headers
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -23,25 +41,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS configuration
-app.use(cors({
-  origin: 'https://app.gettaskease.com',
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Request parsing
-app.use(express.json());
-
 // OpenAI configuration
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// ADDED: Test endpoint to verify API is working
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API endpoint for generating subtasks
 app.post('/api/generate-subtasks', async (req, res) => {
   try {
+    // ADDED: Log incoming request
+    console.log('Received generate-subtasks request:', {
+      body: req.body,
+      headers: req.headers['content-type']
+    });
+
     const { title, description } = req.body;
 
     if (!title || !description) {
@@ -87,6 +108,9 @@ app.post('/api/generate-subtasks', async (req, res) => {
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
 
+    // ADDED: Log successful response
+    console.log('Successfully generated subtasks:', sanitizedSubtasks);
+
     res.json({ subtasks: sanitizedSubtasks });
   } catch (error) {
     console.error('Error generating subtasks:', error);
@@ -106,16 +130,17 @@ app.post('/api/generate-subtasks', async (req, res) => {
   }
 });
 
-// Static file serving for production
+// MOVED: Static files and catch-all route to the end
 app.use(express.static(join(__dirname, '../dist')));
 
+// MOVED: Catch-all route after API routes
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, '../dist/index.html'));
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Global error handler:', err.stack);
   res.status(500).json({
     error: 'Internal Server Error',
     details: 'Something went wrong'
@@ -125,4 +150,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`API endpoints available at https://app.gettaskease.com/api/*`);
 });
