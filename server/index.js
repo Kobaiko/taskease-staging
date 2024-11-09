@@ -45,6 +45,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API endpoints
 app.post('/api/generate-subtasks', async (req, res) => {
   if (!openai) {
     return res.status(503).json({
