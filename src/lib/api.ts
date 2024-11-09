@@ -15,7 +15,7 @@ interface APIError {
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
     const apiUrl = import.meta.env.PROD 
-      ? 'https://api.gettaskease.com/api/generate-subtasks'  // Production API URL
+      ? 'https://app.gettaskease.com/api/generate-subtasks'  // Production API URL
       : '/api/generate-subtasks';  // Development API URL
 
     const response = await fetch(apiUrl, {
