@@ -5,10 +5,11 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load environment variables from the root directory
+dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -23,8 +24,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(join(__dirname, '../dist')));
 
+// Verify that we have the API key
+if (!process.env.VITE_OPENAI_API_KEY) {
+  console.error('OpenAI API key is missing. Please check your .env file.');
+  process.exit(1);
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.VITE_OPENAI_API_KEY
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {

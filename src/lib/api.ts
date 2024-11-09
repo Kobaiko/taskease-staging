@@ -7,41 +7,26 @@ const openai = new OpenAI({
 
 export async function generateSubtasks(title: string, description: string) {
   try {
-    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
-    Task: ${title}
-    Description: ${description}
-    
-    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
-
-    const completion = await openai.chat.completions.create({
-      messages: [{ 
-        role: "system", 
-        content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
-      }, {
-        role: "user",
-        content: prompt
-      }],
-      model: "gpt-3.5-turbo-1106",
-      response_format: { type: "json_object" },
-      temperature: 0.7,
+    const response = await fetch('/api/generate-subtasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, description })
     });
 
-    const result = JSON.parse(completion.choices[0].message.content);
-    
-    if (!result.subtasks || !Array.isArray(result.subtasks)) {
-      throw new Error('Invalid response format from AI');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || 'Failed to generate subtasks');
     }
 
-    // Validate and sanitize subtasks
-    const sanitizedSubtasks = result.subtasks.map(subtask => ({
+    const data = await response.json();
+    return data.subtasks.map((subtask: any) => ({
       id: crypto.randomUUID(),
-      title: String(subtask.title),
-      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60),
+      title: subtask.title,
+      estimatedTime: Math.min(subtask.estimatedTime, 60),
       completed: false
     }));
-
-    return sanitizedSubtasks;
   } catch (error) {
     console.error('Error generating subtasks:', error);
     if (error instanceof Error) {
