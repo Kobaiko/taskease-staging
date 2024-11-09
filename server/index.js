@@ -13,24 +13,64 @@ dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
+const isDev = process.env.NODE_ENV !== 'production';
 
+// Enable CORS with environment-specific options
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
-  credentials: true
+  origin: isDev 
+    ? ['http://localhost:5173', 'http://localhost:3001']
+    : ['https://app.gettaskease.com'],
+  methods: ['GET', 'POST'],
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
+
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com"
+  ];
+
+  const connectSrc = [
+    "'self'",
+    "https://api.openai.com",
+    "https://*.firebaseio.com",
+    "https://*.googleapis.com",
+    "https://www.google-analytics.com",
+    isDev ? "ws://localhost:*" : null // WebSocket for dev server
+  ].filter(Boolean);
+
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    `script-src ${scriptSrc.join(' ')}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    `connect-src ${connectSrc.join(' ')}`,
+    "frame-src 'self'",
+    "font-src 'self'"
+  ].join('; '));
+
+  next();
+});
 
 app.use(express.json());
 
-dotenv.config(); // Load environment variables
-
-const openaiApiKey = process.env.VITE_OPENAI_API_KEY; // Access the API key
-
-if (!openaiApiKey) {
-    throw new Error("The OPENAI_API_KEY environment variable is missing or empty.");
+// Only serve static files in production
+if (!isDev) {
+  app.use(express.static(join(__dirname, '../dist')));
 }
 
 const openai = new OpenAI({
-  apiKey: openaiApiKey
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {
@@ -98,6 +138,13 @@ Example:
   }
 });
 
+// Handle all other routes by serving the index.html in production
+if (!isDev) {
+  app.get('*', (req, res) => {
+    res.sendFile(join(__dirname, '../dist/index.html'));
+  });
+}
+
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server running on port ${port} in ${isDev ? 'development' : 'production'} mode`);
 });
