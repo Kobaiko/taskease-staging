@@ -32,6 +32,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     
     if (credits <= 0) {
       setError('No credits remaining. Please add subtasks manually.');
+      setShowAddManual(true);
       return;
     }
 
@@ -47,9 +48,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       })));
       setShowAddManual(true);
       onCreditsUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating subtasks:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate subtasks');
+      setError(error?.message || 'Failed to generate subtasks. Please try adding them manually.');
+      setShowAddManual(true);
     } finally {
       setIsGenerating(false);
     }
@@ -166,12 +168,12 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 />
               </div>
 
-              {!subTasks.length && (
+              {!subTasks.length && !showAddManual && (
                 <>
                   <button
                     type="button"
                     onClick={handleGenerateSubtasks}
-                    disabled={!title || !description || isGenerating || credits <= 0}
+                    disabled={!title || !description || isGenerating}
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isGenerating ? 'Generating...' : 'Generate Subtasks'}
@@ -210,7 +212,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </div>
                   ))}
 
-                  {showAddManual && (
+                  {(showAddManual || subTasks.length > 0) && (
                     <div key="add-subtask-form" className="grid grid-cols-[1fr,auto,auto] gap-2">
                       <input
                         type="text"
@@ -236,15 +238,14 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </div>
                   )}
 
-                  {subTasks.length > 0 && !showAddManual && (
+                  {!showAddManual && !subTasks.length && (
                     <button
-                      key="add-subtask-button"
                       type="button"
                       onClick={() => setShowAddManual(true)}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+                      className="w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center justify-center gap-1"
                     >
                       <Plus size={16} />
-                      Add Subtask
+                      Add Subtasks Manually
                     </button>
                   )}
                 </div>
