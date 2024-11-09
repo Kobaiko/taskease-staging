@@ -14,9 +14,9 @@ dotenv.config({ path: join(__dirname, '../.env') });
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Enable CORS for development
+// Enable CORS for production
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: ['https://app.gettaskease.com'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
