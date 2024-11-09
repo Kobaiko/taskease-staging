@@ -14,7 +14,11 @@ interface APIError {
 
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
-    const response = await fetch('/api/generate-subtasks', {
+    const apiUrl = import.meta.env.PROD 
+      ? 'https://api.gettaskease.com/api/generate-subtasks'  // Production API URL
+      : '/api/generate-subtasks';  // Development API URL
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,6 +51,9 @@ export async function generateSubtasks(title: string, description: string): Prom
     }));
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to generate subtasks');
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate subtasks: ${error.message}`);
+    }
+    throw new Error('Network error: Unable to connect to the server');
   }
 }

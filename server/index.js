@@ -39,7 +39,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
-// Enable CORS
+// Enable CORS with proper configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://app.gettaskease.com', 'https://www.gettaskease.com']
