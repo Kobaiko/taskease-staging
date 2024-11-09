@@ -4,24 +4,23 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"node server/index.js\"",
+    "dev": "concurrently \"vite\" \"node server/index.js\"",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "cross-env NODE_ENV=production node server/index.js"
+    "start": "node server/index.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.1",
     "express": "^4.18.2",
     "firebase": "^10.8.0",
-    "helmet": "^7.1.0",
     "lucide-react": "^0.344.0",
-    "openai": "^4.28.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.1"
+    "react-router-dom": "^6.22.1",
+    "openai": "^4.28.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
@@ -31,7 +30,6 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",

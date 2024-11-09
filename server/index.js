@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import helmet from 'helmet';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,78 +11,61 @@ const __dirname = dirname(__filename);
 // Load environment variables from the root directory
 dotenv.config({ path: join(__dirname, '../.env') });
 
-if (!process.env.VITE_OPENAI_API_KEY) {
-  console.error('OpenAI API key is missing! Make sure VITE_OPENAI_API_KEY is set in your .env file');
-  process.exit(1);
-}
-
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.openai.com"],
-      fontSrc: ["'self'", "https:", "data:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'self'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
-
-// Enable CORS with proper configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://app.gettaskease.com', 'https://www.gettaskease.com']
-    : ['http://localhost:5173', 'http://localhost:3001'],
-  methods: ['GET', 'POST'],
+  origin: ['http://localhost:5173', 'http://localhost:3001'],
   credentials: true
 }));
 
 app.use(express.json());
 
-// Initialize OpenAI with error handling
-let openai;
-try {
-  openai = new OpenAI({
-    apiKey: process.env.VITE_OPENAI_API_KEY
-  });
-} catch (error) {
-  console.error('Failed to initialize OpenAI:', error);
-  process.exit(1);
+dotenv.config(); // Load environment variables
+
+const openaiApiKey = process.env.VITE_OPENAI_API_KEY; // Access the API key
+
+if (!openaiApiKey) {
+    throw new Error("The OPENAI_API_KEY environment variable is missing or empty.");
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+const openai = new OpenAI({
+  apiKey: openaiApiKey
 });
 
-// API endpoints
 app.post('/api/generate-subtasks', async (req, res) => {
   try {
     const { title, description } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({
-        error: 'Missing required fields',
-        message: 'Both title and description are required'
+        error: 'Missing required fields'
       });
     }
 
-    const prompt = `Break down this task into smaller subtasks (max 60 minutes each):
-      Task: ${title}
-      Description: ${description}
-      
-      Return only a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-      Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
+    const prompt = `You are Taskease, a professional project manager. Your task is to receive a high-level project description and break it down into a sequence of 6-12 clear, actionable subtasks. Each subtask should take no longer than 60 minutes to complete. If a task exceeds this limit, divide it further into smaller steps.
+
+For each subtask:
+1. Write a precise, professional description.
+2. Provide a realistic time estimate for completion, keeping it within the 60-minute threshold.
+3. Arrange subtasks in a logical order, considering dependencies or prerequisites as needed.
+
+Task Title: ${title}
+Task Description: ${description}
+
+Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+
+Example:
+{
+  "subtasks": [
+    {"title": "Research target demographics and industry trends", "estimatedTime": 45},
+    {"title": "Outline campaign objectives and goals", "estimatedTime": 30},
+    {"title": "Identify key messaging points and themes", "estimatedTime": 40},
+    {"title": "Develop a list of potential promotional channels", "estimatedTime": 50},
+    {"title": "Draft a budget outline", "estimatedTime": 30},
+    {"title": "Review and refine proposal content", "estimatedTime": 60}
+  ]
+}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -97,65 +79,25 @@ app.post('/api/generate-subtasks', async (req, res) => {
           content: prompt
         }
       ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 1000
+      response_format: { type: "json_object" }
     });
 
-    const content = completion.choices[0].message.content;
-    if (!content) {
-      throw new Error('No response content received from OpenAI');
-    }
-
-    const result = JSON.parse(content);
+    const result = JSON.parse(completion.choices[0].message.content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
     }
 
-    // Validate and sanitize subtasks
-    const sanitizedSubtasks = result.subtasks.map(subtask => ({
-      title: String(subtask.title),
-      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
-    }));
-
-    res.json({ subtasks: sanitizedSubtasks });
+    res.json({ subtasks: result.subtasks });
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    
-    // Handle different types of errors
-    if (error.code === 'ECONNREFUSED') {
-      return res.status(503).json({
-        error: 'Service Unavailable',
-        message: 'Could not connect to OpenAI service'
-      });
-    }
-
-    if (error.response?.status === 401) {
-      return res.status(500).json({
-        error: 'API Configuration Error',
-        message: 'Invalid API key configuration'
-      });
-    }
-
-    res.status(500).json({
+    res.status(500).json({ 
       error: 'Failed to generate subtasks',
-      message: error.message || 'An unexpected error occurred'
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Global error handler:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Something went wrong'
-  });
-});
-
-// Start server
 app.listen(port, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
-  console.log(`API endpoint: http://localhost:${port}/api/generate-subtasks`);
+  console.log(`Server running on port ${port}`);
 });
