@@ -39,7 +39,7 @@ const mockSubtasks = [
 
 app.post('/api/generate-subtasks', async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, existingSubtasks = [] } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({
@@ -53,18 +53,28 @@ app.post('/api/generate-subtasks', async (req, res) => {
       return res.json({ subtasks: mockSubtasks });
     }
 
-    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
+    const existingSubtasksText = existingSubtasks.length > 0 
+      ? `\n\nExisting subtasks that have already been created:\n${existingSubtasks.map(st => 
+          `- ${st.title} (${st.estimatedTime} minutes)`).join('\n')}`
+      : '';
+
+    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes. Avoid creating subtasks that are similar to any existing ones:
     Task: ${title}
-    Description: ${description}
+    Description: ${description}${existingSubtasksText}
     
     Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
+    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}
+    
+    Important:
+    - Each subtask should be unique and not overlap with existing subtasks
+    - Focus on complementing the existing subtasks if any are provided
+    - Ensure logical progression of tasks`;
 
     const completion = await openai.chat.completions.create({
       messages: [
         { 
           role: "system", 
-          content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
+          content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array. Ensure tasks are unique and don't overlap with existing ones."
         },
         {
           role: "user",
