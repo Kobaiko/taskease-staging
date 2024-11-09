@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
@@ -8,8 +8,20 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { UserProfile } from './pages/UserProfile';
 import { AccountDeleted } from './pages/AccountDeleted';
+import { testApiConnection } from './api'; // Add this import
 
 export default function App() {
+  useEffect(() => {
+    // Test API connection on app load
+    testApiConnection()
+      .then(isConnected => {
+        console.log('API connection test result:', isConnected);
+      })
+      .catch(error => {
+        console.error('API connection test failed:', error);
+      });
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
