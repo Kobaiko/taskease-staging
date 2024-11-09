@@ -15,7 +15,7 @@ const port = process.env.PORT || 3001;
 
 // Enable CORS for development
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://app.gettaskease.com'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
