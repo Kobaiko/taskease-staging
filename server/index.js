@@ -21,7 +21,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'http://localhost:3001', 'https://app.gettaskease.com'],
   credentials: true
 }));
 
@@ -32,13 +32,19 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: false
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.post('/api/generate-subtasks', async (req, res) => {
   try {
     const { title, description } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({
-        error: 'Missing required fields'
+        error: 'Missing required fields',
+        message: 'Both title and description are required'
       });
     }
 

@@ -11,16 +11,20 @@ export async function generateSubtasks(title: string, description: string): Prom
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to generate subtasks');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to generate subtasks');
     }
 
     const data = await response.json();
     
+    if (!data.subtasks || !Array.isArray(data.subtasks)) {
+      throw new Error('Invalid response format from server');
+    }
+
     return data.subtasks.map((subtask: any) => ({
       id: crypto.randomUUID(),
       title: subtask.title,
-      estimatedTime: Math.min(subtask.estimatedTime, 60),
+      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60),
       completed: false
     }));
   } catch (error) {
