@@ -11,33 +11,48 @@ const __dirname = dirname(__filename);
 // Load environment variables from the root directory
 dotenv.config({ path: join(__dirname, '../.env') });
 
-// Validate required environment variables
-if (!process.env.VITE_OPENAI_API_KEY) {
-  console.error('Error: VITE_OPENAI_API_KEY environment variable is missing');
-  process.exit(1);
-}
-
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Enable CORS with specific origins
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3001', 'https://app.gettaskease.com'],
+  methods: ['GET', 'POST'],
   credentials: true
 }));
 
+// Parse JSON bodies
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: false
-});
+// Initialize OpenAI only if API key is available
+let openai;
+try {
+  if (!process.env.VITE_OPENAI_API_KEY) {
+    throw new Error('VITE_OPENAI_API_KEY environment variable is missing');
+  }
+  openai = new OpenAI({
+    apiKey: process.env.VITE_OPENAI_API_KEY
+  });
+} catch (error) {
+  console.error('OpenAI initialization error:', error.message);
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    openai: openai ? 'configured' : 'not configured'
+  });
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {
+  if (!openai) {
+    return res.status(503).json({
+      error: 'Service unavailable',
+      message: 'OpenAI service is not configured'
+    });
+  }
+
   try {
     const { title, description } = req.body;
 
@@ -48,30 +63,6 @@ app.post('/api/generate-subtasks', async (req, res) => {
       });
     }
 
-    const prompt = `You are Taskease, a professional project manager. Your task is to receive a high-level project description and break it down into a sequence of 6-12 clear, actionable subtasks. Each subtask should take no longer than 60 minutes to complete. If a task exceeds this limit, divide it further into smaller steps.
-
-For each subtask:
-1. Write a precise, professional description.
-2. Provide a realistic time estimate for completion, keeping it within the 60-minute threshold.
-3. Arrange subtasks in a logical order, considering dependencies or prerequisites as needed.
-
-Task Title: ${title}
-Task Description: ${description}
-
-Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-
-Example:
-{
-  "subtasks": [
-    {"title": "Research target demographics and industry trends", "estimatedTime": 45},
-    {"title": "Outline campaign objectives and goals", "estimatedTime": 30},
-    {"title": "Identify key messaging points and themes", "estimatedTime": 40},
-    {"title": "Develop a list of potential promotional channels", "estimatedTime": 50},
-    {"title": "Draft a budget outline", "estimatedTime": 30},
-    {"title": "Review and refine proposal content", "estimatedTime": 60}
-  ]
-}`;
-
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
@@ -81,19 +72,35 @@ Example:
         },
         {
           role: "user",
-          content: prompt
+          content: `Break down this task into smaller subtasks (max 60 minutes each):
+            Task: ${title}
+            Description: ${description}
+            
+            Return only a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+            Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`
         }
       ],
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new Error('No response content received from OpenAI');
+    }
+
+    const result = JSON.parse(content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
     }
 
-    res.json({ subtasks: result.subtasks });
+    // Validate and sanitize subtasks
+    const sanitizedSubtasks = result.subtasks.map(subtask => ({
+      title: String(subtask.title),
+      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
+    }));
+
+    res.json({ subtasks: sanitizedSubtasks });
   } catch (error) {
     console.error('Error generating subtasks:', error);
     res.status(500).json({ 
@@ -103,6 +110,8 @@ Example:
   }
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Health check available at http://localhost:${port}/api/health`);
 });

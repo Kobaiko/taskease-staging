@@ -1,5 +1,17 @@
 import { SubTask } from '../types';
 
+interface APIResponse {
+  subtasks: Array<{
+    title: string;
+    estimatedTime: number;
+  }>;
+}
+
+interface APIError {
+  error: string;
+  message: string;
+}
+
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
     const response = await fetch('/api/generate-subtasks', {
@@ -11,17 +23,17 @@ export async function generateSubtasks(title: string, description: string): Prom
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json() as APIError;
       throw new Error(errorData.message || 'Failed to generate subtasks');
     }
 
-    const data = await response.json();
-    
+    const data = await response.json() as APIResponse;
+
     if (!data.subtasks || !Array.isArray(data.subtasks)) {
       throw new Error('Invalid response format from server');
     }
 
-    return data.subtasks.map((subtask: any) => ({
+    return data.subtasks.map(subtask => ({
       id: crypto.randomUUID(),
       title: subtask.title,
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60),
@@ -29,9 +41,6 @@ export async function generateSubtasks(title: string, description: string): Prom
     }));
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to generate subtasks: ${error.message}`);
-    }
-    throw new Error('Failed to generate subtasks. Please try again.');
+    throw new Error(error instanceof Error ? error.message : 'Failed to generate subtasks');
   }
 }
