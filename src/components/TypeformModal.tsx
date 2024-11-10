@@ -27,7 +27,8 @@ export function TypeformModal({ isOpen, onClose }: TypeformModalProps) {
       <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl h-[600px] relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 z-10"
+          className="absolute -right-4 -top-4 w-8 h-8 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors z-10"
+          aria-label="Close"
         >
           <X size={20} />
         </button>
