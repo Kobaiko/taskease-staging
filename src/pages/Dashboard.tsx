@@ -17,7 +17,13 @@ export function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    // Initialize dark mode based on system preference
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
