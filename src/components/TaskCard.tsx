@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { CheckCircle, Clock, Trash2, Plus } from 'lucide-react';
 import type { Task, SubTask } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -15,6 +15,14 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddSubTask, setShowAddSubTask] = useState(false);
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
+  const [isNew, setIsNew] = useState(true);
+
+  useEffect(() => {
+    if (isNew) {
+      const timer = setTimeout(() => setIsNew(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const completedSubTasks = task.subTasks.filter(st => st.completed).length;
   const progress = (completedSubTasks / task.subTasks.length) * 100;
@@ -56,8 +64,10 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
   }, [task.id, onDeleteTask]);
 
   return (
-    <div className="card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-      <div className="card-shine">
+    <div className={`card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 relative ${
+      isNew ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-purple-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
+    }`}>
+      <div className="relative z-10">
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
