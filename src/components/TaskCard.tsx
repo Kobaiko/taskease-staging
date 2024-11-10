@@ -9,20 +9,21 @@ interface TaskCardProps {
   onToggleSubTask: (taskId: string, subTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddSubTask: (taskId: string, subTask: SubTask) => void;
+  isNewlyCreated?: boolean;
 }
 
-export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: TaskCardProps) {
+export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, isNewlyCreated = false }: TaskCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddSubTask, setShowAddSubTask] = useState(false);
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
-  const [isNew, setIsNew] = useState(true);
+  const [showAnimation, setShowAnimation] = useState(isNewlyCreated);
 
   useEffect(() => {
-    if (isNew) {
-      const timer = setTimeout(() => setIsNew(false), 1000);
+    if (showAnimation) {
+      const timer = setTimeout(() => setShowAnimation(false), 2000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [showAnimation]);
 
   const completedSubTasks = task.subTasks.filter(st => st.completed).length;
   const progress = (completedSubTasks / task.subTasks.length) * 100;
@@ -65,7 +66,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask }: 
 
   return (
     <div className={`card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 relative ${
-      isNew ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-purple-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
+      showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-purple-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
     }`}>
       <div className="relative z-10">
         <div className="p-6">

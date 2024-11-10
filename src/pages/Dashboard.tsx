@@ -20,6 +20,7 @@ export function Dashboard() {
   const [isDark, setIsDark] = useState(false);
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -74,6 +75,8 @@ export function Dashboard() {
     };
 
     const taskId = await createTask(currentUser.uid, newTask);
+    setNewTaskId(taskId);
+    setTimeout(() => setNewTaskId(null), 2000);
     await loadTasks();
     await loadUserCredits();
   };
@@ -92,7 +95,6 @@ export function Dashboard() {
       fireConfetti();
     }
 
-    // Update local state first
     const updatedTasks = [...tasks];
     updatedTasks[taskIndex] = {
       ...task,
@@ -101,7 +103,6 @@ export function Dashboard() {
     };
     setTasks(updatedTasks);
 
-    // Then update in the database
     await updateTask(taskId, {
       subTasks: updatedSubTasks,
       completed: allCompleted
@@ -120,7 +121,6 @@ export function Dashboard() {
     const task = tasks[taskIndex];
     const updatedSubTasks = [...task.subTasks, newSubTask];
 
-    // Update local state first
     const updatedTasks = [...tasks];
     updatedTasks[taskIndex] = {
       ...task,
@@ -129,7 +129,6 @@ export function Dashboard() {
     };
     setTasks(updatedTasks);
 
-    // Then update in the database
     await updateTask(taskId, {
       subTasks: updatedSubTasks,
       completed: false
@@ -218,6 +217,7 @@ export function Dashboard() {
                   onToggleSubTask={handleToggleSubTask}
                   onDeleteTask={handleDeleteTask}
                   onAddSubTask={handleAddSubTask}
+                  isNewlyCreated={task.id === newTaskId}
                 />
               </div>
             ))}

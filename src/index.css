@@ -64,6 +64,6 @@
 }
 
 .animate-gradient-x {
-  animation: gradient-x 1s ease-in-out;
+  animation: gradient-x 2s ease-in-out;
   background-size: 200% 200%;
 }
