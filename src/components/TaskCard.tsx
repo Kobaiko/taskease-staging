@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { CheckCircle, Clock, Trash2, Plus, GripVertical } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import React, { useState, useCallback } from 'react';
+import { CheckCircle, Clock, Trash2, Plus } from 'lucide-react';
 import type { Task, SubTask } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { fireConfetti } from '../lib/confetti';
@@ -19,7 +18,7 @@ export function TaskCard({
   task, 
   onToggleSubTask, 
   onDeleteTask, 
-  onAddSubTask, 
+  onAddSubTask,
   onUpdateSubTask,
   onReorderSubTasks,
   isNewlyCreated = false 
@@ -29,7 +28,7 @@ export function TaskCard({
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
   const [showAnimation, setShowAnimation] = useState(isNewlyCreated);
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
-  const [editingTime, setEditingTime] = useState<string>('');
+  const [editingTime, setEditingTime] = useState('');
 
   useEffect(() => {
     if (showAnimation) {
@@ -45,7 +44,7 @@ export function TaskCard({
     .filter(st => !st.completed)
     .reduce((acc, st) => acc + st.estimatedTime, 0);
 
-  const handleAddSubTask = useCallback(() => {
+  const handleAddSubTask = () => {
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
@@ -57,7 +56,7 @@ export function TaskCard({
       setNewSubTask({ title: '', estimatedTime: '' });
       setShowAddSubTask(false);
     }
-  }, [newSubTask, task.id, onAddSubTask]);
+  };
 
   const handleToggleSubTask = useCallback((subTaskId: string) => {
     const isLastSubTask = task.subTasks.filter(st => !st.completed).length === 1;
@@ -78,7 +77,9 @@ export function TaskCard({
   }, [task.id, onDeleteTask]);
 
   const handleUpdateSubTaskTitle = (subTaskId: string, newTitle: string) => {
-    onUpdateSubTask(task.id, subTaskId, { title: newTitle });
+    if (newTitle.trim()) {
+      onUpdateSubTask(task.id, subTaskId, { title: newTitle.trim() });
+    }
     setEditingSubTaskId(null);
   };
 
@@ -88,16 +89,12 @@ export function TaskCard({
       onUpdateSubTask(task.id, subTaskId, { estimatedTime: time });
     }
     setEditingSubTaskId(null);
+    setEditingTime('');
   };
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(task.subTasks);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    onReorderSubTasks(task.id, items);
+  const startEditing = (subTask: SubTask) => {
+    setEditingSubTaskId(subTask.id);
+    setEditingTime(subTask.estimatedTime.toString());
   };
 
   return (
@@ -152,98 +149,76 @@ export function TaskCard({
           </div>
 
           <div className="space-y-3 mb-6">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId={`subtasks-${task.id}`}>
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef}>
-                    {task.subTasks.map((subTask, index) => (
-                      <Draggable key={subTask.id} draggableId={subTask.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg group"
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div {...provided.dragHandleProps} className="text-gray-400 cursor-grab">
-                                <GripVertical size={16} />
-                              </div>
-                              <button
-                                onClick={() => handleToggleSubTask(subTask.id)}
-                                className={`rounded-full p-1 transition-colors duration-200 ${
-                                  subTask.completed
-                                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10'
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
-                              >
-                                <CheckCircle size={20} />
-                              </button>
-                              {editingSubTaskId === subTask.id ? (
-                                <input
-                                  type="text"
-                                  value={subTask.title}
-                                  onChange={(e) => handleUpdateSubTaskTitle(subTask.id, e.target.value)}
-                                  onBlur={() => setEditingSubTaskId(null)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      setEditingSubTaskId(null);
-                                    }
-                                  }}
-                                  className="flex-1 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
-                                  autoFocus
-                                />
-                              ) : (
-                                <span
-                                  onClick={() => setEditingSubTaskId(subTask.id)}
-                                  className={`text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${
-                                    subTask.completed
-                                      ? 'text-gray-400 dark:text-gray-500 line-through'
-                                      : 'text-gray-700 dark:text-gray-300'
-                                  }`}
-                                >
-                                  {subTask.title}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div 
-                                className="flex items-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer"
-                                onClick={() => {
-                                  setEditingSubTaskId(subTask.id);
-                                  setEditingTime(subTask.estimatedTime.toString());
-                                }}
-                              >
-                                <Clock size={14} className="mr-1" />
-                                {editingSubTaskId === subTask.id ? (
-                                  <input
-                                    type="number"
-                                    value={editingTime}
-                                    onChange={(e) => setEditingTime(e.target.value)}
-                                    onBlur={() => handleUpdateSubTaskTime(subTask.id, editingTime)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        handleUpdateSubTaskTime(subTask.id, editingTime);
-                                      }
-                                    }}
-                                    className="w-12 px-1 py-0.5 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded text-sm"
-                                    min="1"
-                                    max="60"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span>{subTask.estimatedTime}m</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+            {task.subTasks.map((subTask) => (
+              <div
+                key={subTask.id}
+                className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleSubTask(subTask.id)}
+                    className={`rounded-full p-1 transition-colors duration-200 ${
+                      subTask.completed
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10'
+                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <CheckCircle size={20} />
+                  </button>
+                  {editingSubTaskId === subTask.id ? (
+                    <div className="flex gap-2 flex-1">
+                      <input
+                        type="text"
+                        defaultValue={subTask.title}
+                        onBlur={(e) => handleUpdateSubTaskTitle(subTask.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleUpdateSubTaskTitle(subTask.id, e.currentTarget.value);
+                          }
+                        }}
+                        className="flex-1 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                        autoFocus
+                      />
+                      <input
+                        type="number"
+                        value={editingTime}
+                        onChange={(e) => setEditingTime(e.target.value)}
+                        onBlur={() => handleUpdateSubTaskTime(subTask.id, editingTime)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleUpdateSubTaskTime(subTask.id, editingTime);
+                          }
+                        }}
+                        className="w-20 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded text-sm"
+                        min="1"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <span
+                        onClick={() => startEditing(subTask)}
+                        className={`text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${
+                          subTask.completed
+                            ? 'text-gray-400 dark:text-gray-500 line-through'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {subTask.title}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {!editingSubTaskId && (
+                  <div 
+                    className="flex items-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer"
+                    onClick={() => startEditing(subTask)}
+                  >
+                    <Clock size={14} className="mr-1" />
+                    <span>{subTask.estimatedTime}m</span>
                   </div>
                 )}
-              </Droppable>
-            </DragDropContext>
+              </div>
+            ))}
           </div>
 
           {showAddSubTask ? (
@@ -262,7 +237,6 @@ export function TaskCard({
                 className="w-20 h-9 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
                 placeholder="Min"
                 min="1"
-                max="60"
               />
               <button
                 onClick={handleAddSubTask}
