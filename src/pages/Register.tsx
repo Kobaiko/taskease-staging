@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Layout, Mail, Lock, User } from 'lucide-react';
+import { Layout, Mail, Lock, User, AlertCircle, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { FirebaseError } from 'firebase/app';
 import { saveMarketingConsent } from '../services/userService';
@@ -16,8 +16,23 @@ export function Register() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
 
+  const passwordRules = {
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    numeric: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+    length: password.length >= 6
+  };
+
+  const isPasswordValid = Object.values(passwordRules).every(rule => rule);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!isPasswordValid) {
+      setError('Please ensure your password meets all requirements');
+      return;
+    }
 
     if (password !== confirmPassword) {
       return setError('Passwords do not match');
@@ -133,6 +148,24 @@ export function Register() {
                 minLength={6}
               />
             </div>
+            <div className="mt-2 space-y-2">
+              {Object.entries(passwordRules).map(([rule, isValid]) => (
+                <div key={rule} className="flex items-center gap-2 text-sm">
+                  {isValid ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={isValid ? 'text-green-600' : 'text-red-600'}>
+                    {rule === 'lowercase' && 'Lowercase character required'}
+                    {rule === 'uppercase' && 'Uppercase character required'}
+                    {rule === 'numeric' && 'Numeric character required'}
+                    {rule === 'special' && 'Non-alphanumeric character required'}
+                    {rule === 'length' && 'Minimum 6 characters required'}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -170,7 +203,7 @@ export function Register() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isPasswordValid}
             className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating account...' : 'Sign Up'}
