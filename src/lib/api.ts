@@ -1,40 +1,12 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
 import OpenAI from 'openai';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load environment variables from the root directory
-dotenv.config({ path: join(__dirname, '../.env') });
-
-const app = express();
-const port = process.env.PORT || 3001;
-
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
-  credentials: true
-}));
-
-app.use(express.json());
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
 });
 
-app.post('/api/generate-subtasks', async (req, res) => {
+export async function generateSubtasks(title: string, description: string) {
   try {
-    const { title, description } = req.body;
-
-    if (!title || !description) {
-      return res.status(400).json({
-        error: 'Missing required fields'
-      });
-    }
-
     const prompt = `You are Taskease, a professional project manager. Your task is to receive a high-level project description and break it down into a sequence of 6-12 clear, actionable subtasks. Each subtask should take no longer than 60 minutes to complete. If a task exceeds this limit, divide it further into smaller steps.
 
 For each subtask:
@@ -59,7 +31,7 @@ Example:
   ]
 }`;
 
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
@@ -74,22 +46,28 @@ Example:
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(completion.choices[0].message.content);
-    
-    if (!result.subtasks || !Array.isArray(result.subtasks)) {
-      throw new Error('Invalid response format from AI');
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error('No response content received from OpenAI');
     }
 
-    res.json({ subtasks: result.subtasks });
+    const result = JSON.parse(content);
+    
+    if (!result.subtasks || !Array.isArray(result.subtasks)) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    return result.subtasks.map(subtask => ({
+      id: crypto.randomUUID(),
+      title: subtask.title,
+      estimatedTime: Math.min(subtask.estimatedTime, 60),
+      completed: false
+    }));
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate subtasks',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
-    });
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate subtasks: ${error.message}`);
+    }
+    throw new Error('Failed to generate subtasks. Please try again.');
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+}

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, LogOut, Mail, Lock, AlertCircle, Settings, Trash2 } from 'lucide-react';
+import { X, LogOut, Mail, Lock, AlertCircle, Settings, Trash2, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { PhotoUpload } from './PhotoUpload';
 import { updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount, reauthenticateUser } from '../services/userService';
 import { isUserAdmin } from '../services/adminService';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -46,9 +45,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     try {
       setIsSaving(true);
       setError('');
-      await updateUserProfile({
-        displayName: displayName || currentUser.displayName,
-      });
+      await updateUserProfile({ displayName });
       setSuccess('Profile updated successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -130,8 +127,8 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       if (!currentUser) return;
       setIsSaving(true);
       await deleteUserAccount(currentUser.uid);
-      onClose(); // Close the profile popup
-      navigate('/account-deleted', { replace: true }); // Use replace to prevent going back
+      onClose();
+      navigate('/account-deleted', { replace: true });
     } catch (err) {
       setError('Failed to delete account. Please try again.');
       console.error(err);
@@ -171,10 +168,9 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
 
             <div className="space-y-6">
               <div className="flex flex-col items-center gap-4">
-                <PhotoUpload
-                  currentPhotoURL={currentUser.photoURL}
-                  className="mb-4"
-                />
+                <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <User className="w-12 h-12 text-gray-400" />
+                </div>
                 
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
