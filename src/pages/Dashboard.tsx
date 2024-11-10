@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Layout, Sun, Moon, User } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { TaskCard } from '../components/TaskCard';
 import { NewTaskModal } from '../components/NewTaskModal';
 import { ProfilePopup } from '../components/ProfilePopup';
@@ -135,6 +136,17 @@ export function Dashboard() {
     });
   };
 
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    if (result.type === 'TASK') {
+      const items = Array.from(tasks);
+      const [reorderedItem] = items.splice(result.source.index, 1);
+      items.splice(result.destination.index, 0, reorderedItem);
+      setTasks(items);
+    }
+  };
+
   const toggleTheme = async () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
@@ -206,22 +218,39 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min [grid-auto-flow:dense]">
-            {tasks.map((task, index) => (
-              <div 
-                key={task.id}
-                className={`md:[grid-column:${(index % 3) + 1}] md:[grid-row:${Math.floor(index / 3) + 1}]`}
-              >
-                <TaskCard
-                  task={task}
-                  onToggleSubTask={handleToggleSubTask}
-                  onDeleteTask={handleDeleteTask}
-                  onAddSubTask={handleAddSubTask}
-                  isNewlyCreated={task.id === newTaskId}
-                />
-              </div>
-            ))}
-          </div>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="tasks" type="TASK">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min [grid-auto-flow:dense]"
+                >
+                  {tasks.map((task, index) => (
+                    <Draggable key={task.id} draggableId={task.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`md:[grid-column:${(index % 3) + 1}] md:[grid-row:${Math.floor(index / 3) + 1}]`}
+                        >
+                          <TaskCard
+                            task={task}
+                            onToggleSubTask={handleToggleSubTask}
+                            onDeleteTask={handleDeleteTask}
+                            onAddSubTask={handleAddSubTask}
+                            isNewlyCreated={task.id === newTaskId}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </main>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { X, Clock, Plus, Trash2, AlertCircle, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import type { SubTask } from '../types';
 import { generateSubtasks } from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -25,6 +26,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [showAddManual, setShowAddManual] = useState(false);
   const [showCreditsExhausted, setShowCreditsExhausted] = useState(false);
   const [error, setError] = useState('');
+  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
   const { currentUser } = useAuth();
 
   const handleGenerateSubtasks = async () => {
@@ -72,6 +74,23 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     setSubTasks(subTasks.filter(st => st.id !== id));
   };
 
+  const handleUpdateSubTaskTitle = (id: string, newTitle: string) => {
+    setSubTasks(subTasks.map(st => 
+      st.id === id ? { ...st, title: newTitle } : st
+    ));
+    setEditingSubTaskId(null);
+  };
+
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(subTasks);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setSubTasks(items);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title && description && subTasks.length > 0) {
@@ -81,7 +100,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setSubTasks([]);
       setShowAddManual(false);
       
-      // Show credits exhausted modal if this was the last credit
       if (credits === 0) {
         setShowCreditsExhausted(true);
       } else {
@@ -188,27 +206,67 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 </label>
 
                 <div className="space-y-3">
-                  {subTasks.map((subTask) => (
-                    <div
-                      key={subTask.id}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                    >
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
-                          <Clock size={14} className="mr-1" />
-                          {subTask.estimatedTime}m
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="subtasks">
+                      {(provided) => (
+                        <div {...provided.droppableProps} ref={provided.innerRef}>
+                          {subTasks.map((subTask, index) => (
+                            <Draggable key={subTask.id} draggableId={subTask.id} index={index}>
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg group"
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div {...provided.dragHandleProps} className="text-gray-400 cursor-grab">
+                                      <GripVertical size={16} />
+                                    </div>
+                                    {editingSubTaskId === subTask.id ? (
+                                      <input
+                                        type="text"
+                                        value={subTask.title}
+                                        onChange={(e) => handleUpdateSubTaskTitle(subTask.id, e.target.value)}
+                                        onBlur={() => setEditingSubTaskId(null)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            setEditingSubTaskId(null);
+                                          }
+                                        }}
+                                        className="flex-1 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <span
+                                        onClick={() => setEditingSubTaskId(subTask.id)}
+                                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                                      >
+                                        {subTask.title}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
+                                      <Clock size={14} className="mr-1" />
+                                      {subTask.estimatedTime}m
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteSubTask(subTask.id)}
+                                      className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSubTask(subTask.id)}
-                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      )}
+                    </Droppable>
+                  </DragDropContext>
 
                   {showAddManual && (
                     <div key="add-subtask-form" className="grid grid-cols-[1fr,auto,auto] gap-2">
