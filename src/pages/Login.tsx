@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Layout, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useAuth();
 
@@ -22,6 +26,26 @@ export function Login() {
       setError(err.message || 'Failed to sign in. Please check your credentials.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setResetLoading(true);
+      await sendPasswordResetEmail(auth, email);
+      setSuccess('Password reset email sent. Please check your inbox.');
+    } catch (err: any) {
+      setError('Failed to send password reset email. Please try again.');
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -45,6 +69,12 @@ export function Login() {
           </div>
         )}
 
+        {success && (
+          <div className="mb-6 p-4 rounded-lg bg-green-50 text-green-600">
+            <p className="text-sm">{success}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -64,9 +94,18 @@ export function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </label>
+              <button
+                onClick={handleForgotPassword}
+                disabled={resetLoading}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
+              >
+                {resetLoading ? 'Sending...' : 'Forgot password?'}
+              </button>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
