@@ -136,6 +136,43 @@ export function Dashboard() {
     });
   };
 
+  const handleUpdateSubTask = async (taskId: string, subTaskId: string, updates: Partial<SubTask>) => {
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const task = tasks[taskIndex];
+    const updatedSubTasks = task.subTasks.map(st =>
+      st.id === subTaskId ? { ...st, ...updates } : st
+    );
+
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = {
+      ...task,
+      subTasks: updatedSubTasks
+    };
+    setTasks(updatedTasks);
+
+    await updateTask(taskId, {
+      subTasks: updatedSubTasks
+    });
+  };
+
+  const handleReorderSubTasks = async (taskId: string, reorderedSubTasks: SubTask[]) => {
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const updatedTasks = [...tasks];
+    updatedTasks[taskIndex] = {
+      ...updatedTasks[taskIndex],
+      subTasks: reorderedSubTasks
+    };
+    setTasks(updatedTasks);
+
+    await updateTask(taskId, {
+      subTasks: reorderedSubTasks
+    });
+  };
+
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
 
@@ -219,27 +256,32 @@ export function Dashboard() {
           </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="tasks" type="TASK">
+            <Droppable droppableId="tasks" type="TASK" direction="horizontal">
               {(provided) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min [grid-auto-flow:dense]"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   {tasks.map((task, index) => (
                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                      {(provided) => (
+                      {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`md:[grid-column:${(index % 3) + 1}] md:[grid-row:${Math.floor(index / 3) + 1}]`}
+                          style={{
+                            ...provided.draggableProps.style,
+                            gridColumn: snapshot.isDragging ? 'span 3' : undefined
+                          }}
                         >
                           <TaskCard
                             task={task}
                             onToggleSubTask={handleToggleSubTask}
                             onDeleteTask={handleDeleteTask}
                             onAddSubTask={handleAddSubTask}
+                            onUpdateSubTask={handleUpdateSubTask}
+                            onReorderSubTasks={handleReorderSubTasks}
                             isNewlyCreated={task.id === newTaskId}
                           />
                         </div>
