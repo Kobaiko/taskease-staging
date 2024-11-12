@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Layout, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { Logo } from '../components/Logo';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -53,18 +54,12 @@ export function Login() {
     <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center">
-              <Layout className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold">TaskEase</h1>
-              <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
-            </div>
-          </div>
+          <Logo size="lg" />
         </div>
 
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-600 flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 mr-2" />
             <p className="text-sm">{error}</p>
           </div>
         )}
