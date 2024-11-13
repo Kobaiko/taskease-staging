@@ -1,12 +1,15 @@
 import React from 'react';
-import { Logo } from '../components/Logo';
+import { Layout } from 'lucide-react';
 
 export function AccountDeleted() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <Logo size="lg" showBeta={false} />
+          <div className="flex items-center justify-center">
+            <Layout className="h-12 w-12 text-blue-600" />
+            <h1 className="ml-2 text-3xl font-bold">TaskEase</h1>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
