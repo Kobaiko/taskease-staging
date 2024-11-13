@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Layout, Sun, Moon, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Sun, Moon, User } from 'lucide-react';
 import { TaskCard } from '../components/TaskCard';
 import { NewTaskModal } from '../components/NewTaskModal';
 import { ProfilePopup } from '../components/ProfilePopup';
@@ -150,8 +150,7 @@ export function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">TaskEase</h1>
+              <img src="/images/Logo.png" alt="TaskEase" className="h-8 dark:invert" />
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
               <CreditDisplay credits={credits} />
               <button
@@ -190,7 +189,7 @@ export function Dashboard() {
           </div>
         ) : tasks.length === 0 ? (
           <div className="text-center py-12">
-            <Layout className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+            <img src="/images/Logo.png" alt="TaskEase" className="mx-auto h-12 dark:invert" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No tasks</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Get started by creating a new task
