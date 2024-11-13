@@ -2,6 +2,7 @@
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
+  node_version = "18.19.0"
 
 [[redirects]]
   from = "/api/*"
