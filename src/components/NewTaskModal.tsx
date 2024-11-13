@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Clock, Plus, Trash2, AlertCircle } from 'lucide-react';
 import type { SubTask } from '../types';
 import { generateSubtasks } from '../lib/api';
@@ -25,8 +25,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [showAddManual, setShowAddManual] = useState(false);
   const [showCreditsExhausted, setShowCreditsExhausted] = useState(false);
   const [error, setError] = useState('');
-  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
-  const [editingTime, setEditingTime] = useState('');
   const { currentUser } = useAuth();
 
   const handleGenerateSubtasks = async () => {
@@ -74,31 +72,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     setSubTasks(subTasks.filter(st => st.id !== id));
   };
 
-  const handleUpdateSubTaskTitle = (id: string, newTitle: string) => {
-    if (newTitle.trim()) {
-      setSubTasks(subTasks.map(st =>
-        st.id === id ? { ...st, title: newTitle.trim() } : st
-      ));
-    }
-    setEditingSubTaskId(null);
-  };
-
-  const handleUpdateSubTaskTime = (id: string, newTime: string) => {
-    const time = parseInt(newTime);
-    if (!isNaN(time) && time > 0) {
-      setSubTasks(subTasks.map(st =>
-        st.id === id ? { ...st, estimatedTime: time } : st
-      ));
-    }
-    setEditingSubTaskId(null);
-    setEditingTime('');
-  };
-
-  const startEditing = (subTask: SubTask) => {
-    setEditingSubTaskId(subTask.id);
-    setEditingTime(subTask.estimatedTime.toString());
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title && description && subTasks.length > 0) {
@@ -108,6 +81,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setSubTasks([]);
       setShowAddManual(false);
       
+      // Show credits exhausted modal if this was the last credit
       if (credits === 0) {
         setShowCreditsExhausted(true);
       } else {
@@ -219,60 +193,20 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                       key={subTask.id}
                       className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
                     >
-                      {editingSubTaskId === subTask.id ? (
-                        <div className="flex gap-2 flex-1">
-                          <input
-                            type="text"
-                            defaultValue={subTask.title}
-                            onBlur={(e) => handleUpdateSubTaskTitle(subTask.id, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleUpdateSubTaskTitle(subTask.id, e.currentTarget.value);
-                              }
-                            }}
-                            className="flex-1 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
-                            autoFocus
-                          />
-                          <input
-                            type="number"
-                            value={editingTime}
-                            onChange={(e) => setEditingTime(e.target.value)}
-                            onBlur={() => handleUpdateSubTaskTime(subTask.id, editingTime)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleUpdateSubTaskTime(subTask.id, editingTime);
-                              }
-                            }}
-                            className="w-20 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded text-sm"
-                            min="1"
-                          />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
+                          <Clock size={14} className="mr-1" />
+                          {subTask.estimatedTime}m
                         </div>
-                      ) : (
-                        <>
-                          <span
-                            onClick={() => startEditing(subTask)}
-                            className="text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                          >
-                            {subTask.title}
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="flex items-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer"
-                              onClick={() => startEditing(subTask)}
-                            >
-                              <Clock size={14} className="mr-1" />
-                              {subTask.estimatedTime}m
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSubTask(subTask.id)}
-                              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubTask(subTask.id)}
+                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
 
@@ -289,9 +223,8 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                         type="number"
                         value={newSubTask.estimatedTime}
                         onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
-                        className="w-20 px-2 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                        className="w-16 px-2 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
                         placeholder="Min"
-                        min="1"
                       />
                       <button
                         type="button"

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { CheckCircle, Clock, Trash2, Plus } from 'lucide-react';
 import type { Task, SubTask } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -9,26 +9,14 @@ interface TaskCardProps {
   onToggleSubTask: (taskId: string, subTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onAddSubTask: (taskId: string, subTask: SubTask) => void;
-  onUpdateSubTask: (taskId: string, subTaskId: string, updates: Partial<SubTask>) => void;
-  onReorderSubTasks: (taskId: string, reorderedSubTasks: SubTask[]) => void;
   isNewlyCreated?: boolean;
 }
 
-export function TaskCard({ 
-  task, 
-  onToggleSubTask, 
-  onDeleteTask, 
-  onAddSubTask,
-  onUpdateSubTask,
-  onReorderSubTasks,
-  isNewlyCreated = false 
-}: TaskCardProps) {
+export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, isNewlyCreated = false }: TaskCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddSubTask, setShowAddSubTask] = useState(false);
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
   const [showAnimation, setShowAnimation] = useState(isNewlyCreated);
-  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
-  const [editingTime, setEditingTime] = useState('');
 
   useEffect(() => {
     if (showAnimation) {
@@ -44,7 +32,7 @@ export function TaskCard({
     .filter(st => !st.completed)
     .reduce((acc, st) => acc + st.estimatedTime, 0);
 
-  const handleAddSubTask = () => {
+  const handleAddSubTask = useCallback(() => {
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
@@ -56,7 +44,7 @@ export function TaskCard({
       setNewSubTask({ title: '', estimatedTime: '' });
       setShowAddSubTask(false);
     }
-  };
+  }, [newSubTask, task.id, onAddSubTask]);
 
   const handleToggleSubTask = useCallback((subTaskId: string) => {
     const isLastSubTask = task.subTasks.filter(st => !st.completed).length === 1;
@@ -75,27 +63,6 @@ export function TaskCard({
     onDeleteTask(task.id);
     setShowDeleteConfirm(false);
   }, [task.id, onDeleteTask]);
-
-  const handleUpdateSubTaskTitle = (subTaskId: string, newTitle: string) => {
-    if (newTitle.trim()) {
-      onUpdateSubTask(task.id, subTaskId, { title: newTitle.trim() });
-    }
-    setEditingSubTaskId(null);
-  };
-
-  const handleUpdateSubTaskTime = (subTaskId: string, timeStr: string) => {
-    const time = parseInt(timeStr);
-    if (!isNaN(time) && time > 0) {
-      onUpdateSubTask(task.id, subTaskId, { estimatedTime: time });
-    }
-    setEditingSubTaskId(null);
-    setEditingTime('');
-  };
-
-  const startEditing = (subTask: SubTask) => {
-    setEditingSubTaskId(subTask.id);
-    setEditingTime(subTask.estimatedTime.toString());
-  };
 
   return (
     <div className={`card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 relative ${
@@ -165,58 +132,20 @@ export function TaskCard({
                   >
                     <CheckCircle size={20} />
                   </button>
-                  {editingSubTaskId === subTask.id ? (
-                    <div className="flex gap-2 flex-1">
-                      <input
-                        type="text"
-                        defaultValue={subTask.title}
-                        onBlur={(e) => handleUpdateSubTaskTitle(subTask.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleUpdateSubTaskTitle(subTask.id, e.currentTarget.value);
-                          }
-                        }}
-                        className="flex-1 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
-                        autoFocus
-                      />
-                      <input
-                        type="number"
-                        value={editingTime}
-                        onChange={(e) => setEditingTime(e.target.value)}
-                        onBlur={() => handleUpdateSubTaskTime(subTask.id, editingTime)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleUpdateSubTaskTime(subTask.id, editingTime);
-                          }
-                        }}
-                        className="w-20 px-2 py-1 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded text-sm"
-                        min="1"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <span
-                        onClick={() => startEditing(subTask)}
-                        className={`text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 ${
-                          subTask.completed
-                            ? 'text-gray-400 dark:text-gray-500 line-through'
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {subTask.title}
-                      </span>
-                    </>
-                  )}
-                </div>
-                {!editingSubTaskId && (
-                  <div 
-                    className="flex items-center text-gray-400 dark:text-gray-500 text-sm cursor-pointer"
-                    onClick={() => startEditing(subTask)}
+                  <span
+                    className={`text-sm ${
+                      subTask.completed
+                        ? 'text-gray-400 dark:text-gray-500 line-through'
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}
                   >
-                    <Clock size={14} className="mr-1" />
-                    <span>{subTask.estimatedTime}m</span>
-                  </div>
-                )}
+                    {subTask.title}
+                  </span>
+                </div>
+                <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
+                  <Clock size={14} className="mr-1" />
+                  {subTask.estimatedTime}m
+                </div>
               </div>
             ))}
           </div>
@@ -236,7 +165,6 @@ export function TaskCard({
                 onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
                 className="w-20 h-9 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
                 placeholder="Min"
-                min="1"
               />
               <button
                 onClick={handleAddSubTask}
