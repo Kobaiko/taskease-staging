@@ -138,7 +138,7 @@ export function Dashboard() {
             </div>
           ) : tasks.length === 0 ? (
             <div className="text-center py-12">
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No tasks</h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">No tasks</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Get started by creating a new task
               </p>
@@ -164,18 +164,26 @@ export function Dashboard() {
                         const updatedSubTasks = t.subTasks.map(st =>
                           st.id === subTaskId ? { ...st, completed: !st.completed } : st
                         );
+                        const allCompleted = updatedSubTasks.every(st => st.completed);
+                        if (allCompleted && !t.completed) {
+                          fireConfetti();
+                        }
                         return {
                           ...t,
                           subTasks: updatedSubTasks,
-                          completed: updatedSubTasks.every(st => st.completed)
+                          completed: allCompleted
                         };
                       }
                       return t;
                     });
                     setTasks(updatedTasks);
-                    updateTask(taskId, {
-                      subTasks: updatedTasks.find(t => t.id === taskId)?.subTasks || []
-                    });
+                    const updatedTask = updatedTasks.find(t => t.id === taskId);
+                    if (updatedTask) {
+                      updateTask(taskId, {
+                        subTasks: updatedTask.subTasks,
+                        completed: updatedTask.completed
+                      });
+                    }
                   }}
                   onDeleteTask={async (taskId) => {
                     await deleteTask(taskId);

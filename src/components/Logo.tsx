@@ -8,9 +8,9 @@ interface LogoProps {
 
 export function Logo({ className = '', size = 'md', showBeta = true }: LogoProps) {
   const sizes = {
-    sm: { icon: 24, text: 'text-xl' },
+    sm: { icon: 24, text: 'text-lg' },
     md: { icon: 32, text: 'text-2xl' },
-    lg: { icon: 40, text: 'text-4xl' }
+    lg: { icon: 40, text: 'text-3xl' }
   };
 
   return (
@@ -40,9 +40,13 @@ export function Logo({ className = '', size = 'md', showBeta = true }: LogoProps
           </defs>
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" filter="url(#inner-shadow)" />
         </svg>
-        <h1 className={`ml-2 ${sizes[size].text} font-bold text-gray-900 dark:text-white`}>TaskEase</h1>
+        <span className={`ml-2 ${sizes[size].text} font-bold text-gray-900 dark:text-white`}>
+          TaskEase
+        </span>
         {showBeta && (
-          <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
+          <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+            BETA
+          </span>
         )}
       </div>
     </div>
