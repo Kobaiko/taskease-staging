@@ -88,8 +88,9 @@ export function Dashboard() {
       };
 
       const taskId = await createTask(currentUser!.uid, task);
-      const newTask = { ...task, id: taskId };
-      setTasks([newTask, ...tasks]);
+      const newTask = { id: taskId, ...task };
+      setTasks(prevTasks => [newTask, ...prevTasks]);
+      setIsModalOpen(false); // Close modal after successful creation
     } catch (err) {
       console.error('Error creating task:', err);
       setError('Failed to create task. Please try again.');
@@ -112,7 +113,7 @@ export function Dashboard() {
       };
 
       await updateTask(taskId, updatedTask);
-      setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
     } catch (err) {
       console.error('Error updating subtask:', err);
       setError('Failed to update task. Please try again.');
@@ -122,7 +123,7 @@ export function Dashboard() {
   async function handleDeleteTask(taskId: string) {
     try {
       await deleteTask(taskId);
-      setTasks(tasks.filter(t => t.id !== taskId));
+      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
     } catch (err) {
       console.error('Error deleting task:', err);
       setError('Failed to delete task. Please try again.');
@@ -140,7 +141,7 @@ export function Dashboard() {
       };
 
       await updateTask(taskId, updatedTask);
-      setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
     } catch (err) {
       console.error('Error adding subtask:', err);
       setError('Failed to add subtask. Please try again.');
