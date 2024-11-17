@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY
+  apiKey: process.env.VITE_OPENAI_API_KEY // Changed to use VITE_ prefix
 });
 
 const corsHeaders = {
@@ -11,7 +11,6 @@ const corsHeaders = {
 };
 
 export const handler = async (event) => {
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -21,7 +20,6 @@ export const handler = async (event) => {
   }
 
   try {
-    // Parse the incoming request body
     const { title, description } = JSON.parse(event.body);
 
     if (!title || !description) {
@@ -64,7 +62,6 @@ export const handler = async (event) => {
       throw new Error('Invalid response format from AI');
     }
 
-    // Validate and sanitize subtasks
     const sanitizedSubtasks = result.subtasks.map(subtask => ({
       title: String(subtask.title).trim(),
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
@@ -81,7 +78,6 @@ export const handler = async (event) => {
   } catch (error) {
     console.error('Function error:', error);
     
-    // Return a more detailed error response
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
