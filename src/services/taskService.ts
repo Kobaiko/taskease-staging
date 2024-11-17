@@ -7,10 +7,11 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { Task } from '../types';
+import type { Task, SubTask } from '../types';
 
 const TASKS_COLLECTION = 'tasks';
 
@@ -49,23 +50,22 @@ export async function deleteTask(taskId: string): Promise<void> {
   await deleteDoc(taskRef);
 }
 
-export async function updateSubtaskStatus(
-  taskId: string,
-  subtaskId: string,
-  completed: boolean
-): Promise<void> {
+export async function updateSubtaskStatus(taskId: string, subtaskId: string, completed: boolean): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
-  const task = (await getDocs(query(collection(db, TASKS_COLLECTION), where('id', '==', taskId)))).docs[0];
+  const taskDoc = await getDoc(taskRef);
   
-  if (!task) throw new Error('Task not found');
-  
-  const updatedSubtasks = task.data().subTasks.map((st: any) =>
+  if (!taskDoc.exists()) {
+    throw new Error('Task not found');
+  }
+
+  const taskData = taskDoc.data() as Task;
+  const updatedSubtasks = taskData.subTasks.map(st =>
     st.id === subtaskId ? { ...st, completed } : st
   );
   
   await updateDoc(taskRef, {
     subTasks: updatedSubtasks,
-    completed: updatedSubtasks.every((st: any) => st.completed),
+    completed: updatedSubtasks.every(st => st.completed),
     updatedAt: serverTimestamp()
   });
 }

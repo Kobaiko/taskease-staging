@@ -19,11 +19,12 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
   const [showAnimation, setShowAnimation] = useState(isNewlyCreated);
 
   useEffect(() => {
-    if (showAnimation) {
+    if (isNewlyCreated) {
+      setShowAnimation(true);
       const timer = setTimeout(() => setShowAnimation(false), 2000);
       return () => clearTimeout(timer);
     }
-  }, [showAnimation]);
+  }, [isNewlyCreated]);
 
   const completedSubTasks = task.subTasks.filter(st => st.completed).length;
   const progress = (completedSubTasks / task.subTasks.length) * 100;
@@ -65,9 +66,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
   }, [task.id, onDeleteTask]);
 
   return (
-    <div className={`relative ${
-      showAnimation ? 'animate-task-appear' : ''
-    }`}>
+    <div className={`relative ${showAnimation ? 'animate-task-appear' : ''}`}>
       <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${
         showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-fuchsia-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : 'border border-gray-200 dark:border-gray-700'
       }`}>
