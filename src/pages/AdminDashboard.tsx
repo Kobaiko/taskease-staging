@@ -3,11 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Layout, Save, RefreshCcw, UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isUserAdmin, getAllUsers, addAdmin, setUserCredits } from '../services/adminService';
-import { Logo } from '../components/Logo';
 
 interface User {
   id: string;
-  email: string;
   credits: number;
   lastUpdated: Date;
 }
@@ -164,7 +162,7 @@ export function AdminDashboard() {
                   <option value="">Select user</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
-                      {user.email} ({user.credits} credits)
+                      User ID: {user.id} ({user.credits} credits)
                     </option>
                   ))}
                 </select>
@@ -201,25 +199,20 @@ export function AdminDashboard() {
                 {users.map(user => (
                   <div
                     key={user.id}
-                    className="flex flex-col p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">
-                          {user.email}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          ID: {user.id}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
-                          {user.credits} credits
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Last updated: {user.lastUpdated.toLocaleString()}
-                        </p>
-                      </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        User ID: {user.id}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Last updated: {user.lastUpdated.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                        {user.credits} credits
+                      </p>
                     </div>
                   </div>
                 ))}
