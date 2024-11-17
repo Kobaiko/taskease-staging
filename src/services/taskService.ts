@@ -8,7 +8,8 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  getDoc
+  getDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Task, SubTask } from '../types';
@@ -20,10 +21,15 @@ export async function getUserTasks(userId: string): Promise<Task[]> {
   const q = query(tasksRef, where('userId', '==', userId));
   const querySnapshot = await getDocs(q);
   
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as Task));
+  return querySnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      // Convert Firestore Timestamp to JavaScript Date
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
+    } as Task;
+  });
 }
 
 export async function createTask(userId: string, task: Omit<Task, 'id'>): Promise<string> {
@@ -53,7 +59,7 @@ export async function deleteTask(taskId: string): Promise<void> {
 export async function updateSubtaskStatus(taskId: string, subtaskId: string, completed: boolean): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
   const taskDoc = await getDoc(taskRef);
-  
+
   if (!taskDoc.exists()) {
     throw new Error('Task not found');
   }
@@ -62,7 +68,7 @@ export async function updateSubtaskStatus(taskId: string, subtaskId: string, com
   const updatedSubtasks = taskData.subTasks.map(st =>
     st.id === subtaskId ? { ...st, completed } : st
   );
-  
+
   await updateDoc(taskRef, {
     subTasks: updatedSubtasks,
     completed: updatedSubtasks.every(st => st.completed),

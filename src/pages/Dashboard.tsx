@@ -48,11 +48,17 @@ export function Dashboard() {
         getUserTasks(currentUser.uid),
         getUserCredits(currentUser.uid)
       ]);
+
+      // Ensure all tasks have valid dates
+      const validTasks = userTasks.map(task => ({
+        ...task,
+        createdAt: task.createdAt instanceof Date ? task.createdAt : new Date(task.createdAt)
+      }));
       
       // Sort tasks by creation date, newest first
-      const sortedTasks = userTasks.sort((a, b) => {
-        return b.createdAt.getTime() - a.createdAt.getTime();
-      });
+      const sortedTasks = validTasks.sort((a, b) => 
+        b.createdAt.getTime() - a.createdAt.getTime()
+      );
       
       setTasks(sortedTasks);
       setCredits(userCredits);
@@ -102,6 +108,10 @@ export function Dashboard() {
       
       // Add new task at the beginning of the list
       setTasks(prev => [createdTask, ...prev]);
+      
+      // Update credits after task creation
+      const updatedCredits = await getUserCredits(currentUser.uid);
+      setCredits(updatedCredits);
     } catch (error) {
       console.error('Error creating task:', error);
     }
@@ -172,9 +182,6 @@ export function Dashboard() {
     }
   };
 
-  // Sort tasks by creation date, newest first
-  const sortedTasks = [...tasks].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -215,7 +222,7 @@ export function Dashboard() {
             <div className="flex items-center justify-center min-h-[60vh]">
               <LoadingSpinner size={40} className="text-purple-600 dark:text-purple-400" />
             </div>
-          ) : sortedTasks.length === 0 ? (
+          ) : tasks.length === 0 ? (
             <div className="text-center py-12">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
                 No tasks yet
@@ -233,14 +240,14 @@ export function Dashboard() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {sortedTasks.map((task) => (
+              {tasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
                   onToggleSubTask={handleToggleSubTask}
                   onDeleteTask={handleDeleteTask}
                   onAddSubTask={handleAddSubTask}
-                  isNewlyCreated={task === sortedTasks[0]}
+                  isNewlyCreated={task === tasks[0]}
                 />
               ))}
             </div>
