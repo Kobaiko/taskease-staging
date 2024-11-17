@@ -1,7 +1,34 @@
-// ... previous imports remain the same ...
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Logo } from './Logo';
+import { ConfirmDialog } from './ConfirmDialog';
+import { deleteUserAccount } from '../services/userService';
+
+interface ProfilePopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
 export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
-  // ... previous state and handlers remain the same ...
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onClose();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError('Failed to log out');
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!currentUser) return;
@@ -23,7 +50,39 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     }
   };
 
-  // ... rest of the component remains the same until the logout button ...
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <Logo size="sm" />
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Profile
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Signed in as: {currentUser?.email}
+                </p>
+              </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                 <button
