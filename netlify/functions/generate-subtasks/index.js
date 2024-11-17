@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.VITE_OPENAI_API_KEY
 });
 
 const corsHeaders = {
@@ -20,21 +20,7 @@ export const handler = async (event) => {
     };
   }
 
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-
   try {
-    console.log('Received event:', { 
-      method: event.httpMethod,
-      headers: event.headers
-    });
-
     // Parse the incoming request body
     const { title, description } = JSON.parse(event.body);
 
@@ -49,14 +35,7 @@ export const handler = async (event) => {
       };
     }
 
-    console.log('Processing request for:', { title, description });
-
-    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
-    Task: ${title}
-    Description: ${description}
-    
-    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
+    console.log('Generating subtasks for:', { title, description });
 
     const completion = await openai.chat.completions.create({
       messages: [{ 
@@ -64,18 +43,22 @@ export const handler = async (event) => {
         content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
       }, {
         role: "user",
-        content: prompt
+        content: `Break down this task into smaller subtasks (max 60 minutes each):
+        Task: ${title}
+        Description: ${description}
+        
+        Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+        Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`
       }],
       model: "gpt-3.5-turbo",
       response_format: { type: "json_object" },
       temperature: 0.7,
     });
 
-    if (!completion.choices[0]?.message?.content) {
-      throw new Error('No response received from OpenAI');
-    }
+    const content = completion.choices[0].message.content;
+    console.log('OpenAI response:', content);
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    const result = JSON.parse(content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
@@ -87,7 +70,7 @@ export const handler = async (event) => {
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
 
-    console.log('Generated subtasks:', sanitizedSubtasks);
+    console.log('Sanitized subtasks:', sanitizedSubtasks);
 
     return {
       statusCode: 200,
@@ -97,12 +80,15 @@ export const handler = async (event) => {
 
   } catch (error) {
     console.error('Function error:', error);
+    
+    // Return a more detailed error response
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Failed to generate subtasks',
-        details: error.message
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })
     };
   }
