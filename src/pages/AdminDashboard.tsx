@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Layout, Save, RefreshCcw, UserPlus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isUserAdmin, getAllUsers, addAdmin, setUserCredits } from '../services/adminService';
+import { Logo } from '../components/Logo';
 
 interface User {
   id: string;
+  email: string;
   credits: number;
   lastUpdated: Date;
 }
@@ -106,7 +108,7 @@ export function AdminDashboard() {
                 <span className="text-sm">Back to App</span>
               </Link>
               <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
-              <Layout className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+              <Layout className="h-8 w-8 text-purple-600 dark:text-purple-500" />
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
             </div>
             <button
@@ -138,12 +140,12 @@ export function AdminDashboard() {
                   value={newAdminEmail}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
                   placeholder="Enter email address"
-                  className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                  className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 />
                 <button
                   type="submit"
                   disabled={!newAdminEmail}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UserPlus size={16} />
                   Add Admin
@@ -157,12 +159,12 @@ export function AdminDashboard() {
                 <select
                   value={selectedUser || ''}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 >
                   <option value="">Select user</option>
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
-                      User ID: {user.id} ({user.credits} credits)
+                      {user.email} ({user.credits} credits)
                     </option>
                   ))}
                 </select>
@@ -173,12 +175,12 @@ export function AdminDashboard() {
                     onChange={(e) => setCreditsToSet(e.target.value)}
                     placeholder="Number of credits"
                     min="0"
-                    className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                    className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                   />
                   <button
                     type="submit"
                     disabled={!selectedUser || !creditsToSet}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Save size={16} />
                     Set Credits
@@ -199,20 +201,25 @@ export function AdminDashboard() {
                 {users.map(user => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    className="flex flex-col p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        User ID: {user.id}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Last updated: {user.lastUpdated.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                        {user.credits} credits
-                      </p>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {user.email}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          ID: {user.id}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                          {user.credits} credits
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Last updated: {user.lastUpdated.toLocaleString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}
