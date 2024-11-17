@@ -19,3 +19,6 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
+[functions.generate-subtasks]
+  included_files = []

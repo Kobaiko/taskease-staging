@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY // Remove VITE_ prefix for Netlify Functions
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 const corsHeaders = {
@@ -11,6 +11,7 @@ const corsHeaders = {
 };
 
 export const handler = async (event) => {
+  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -21,6 +22,7 @@ export const handler = async (event) => {
 
   try {
     if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key is missing');
       throw new Error('OpenAI API key is not configured');
     }
 
@@ -37,6 +39,7 @@ export const handler = async (event) => {
       };
     }
 
+    console.log('Processing request with OpenAI key:', !!process.env.OPENAI_API_KEY);
     console.log('Generating subtasks for:', { title, description });
 
     const completion = await openai.chat.completions.create({
@@ -57,6 +60,10 @@ export const handler = async (event) => {
       temperature: 0.7,
     });
 
+    if (!completion.choices[0]?.message?.content) {
+      throw new Error('No response content received from OpenAI');
+    }
+
     const content = completion.choices[0].message.content;
     console.log('OpenAI response:', content);
 
@@ -66,12 +73,13 @@ export const handler = async (event) => {
       throw new Error('Invalid response format from AI');
     }
 
+    // Validate and sanitize subtasks
     const sanitizedSubtasks = result.subtasks.map(subtask => ({
       title: String(subtask.title).trim(),
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
 
-    console.log('Sanitized subtasks:', sanitizedSubtasks);
+    console.log('Returning sanitized subtasks:', sanitizedSubtasks);
 
     return {
       statusCode: 200,
