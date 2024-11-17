@@ -1,17 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#7C3AED">
   <defs>
     <filter id="inner-shadow">
       <feOffset dx="0" dy="1" />
       <feGaussianBlur stdDeviation="1" result="offset-blur" />
       <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
-      <feFlood flood-color="black" flood-opacity="0.75" result="color" />
+      <feFlood flood-color="black" flood-opacity="0.4" result="color" />
       <feComposite operator="in" in="color" in2="inverse" result="shadow" />
       <feComposite operator="over" in="shadow" in2="SourceGraphic" />
     </filter>
   </defs>
   <path
     d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-    fill="#7C3AED"
     filter="url(#inner-shadow)"
     stroke-linecap="round"
     stroke-linejoin="round"
