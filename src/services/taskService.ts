@@ -37,8 +37,7 @@ export async function createTask(userId: string, task: Omit<Task, 'id'>): Promis
   const docRef = await addDoc(tasksRef, {
     ...task,
     userId,
-    createdAt: serverTimestamp(),
-    completed: false
+    createdAt: serverTimestamp()
   });
   return docRef.id;
 }

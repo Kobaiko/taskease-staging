@@ -90,7 +90,7 @@ export function Dashboard() {
       const taskId = await createTask(currentUser!.uid, task);
       const newTask = { id: taskId, ...task };
       setTasks(prevTasks => [newTask, ...prevTasks]);
-      setIsModalOpen(false); // Close modal after successful creation
+      setIsModalOpen(false);
     } catch (err) {
       console.error('Error creating task:', err);
       setError('Failed to create task. Please try again.');
