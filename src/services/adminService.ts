@@ -1,10 +1,10 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
+import { getAuth, listUsers } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
 const CREDITS_COLLECTION = 'credits';
-const USERS_COLLECTION = 'users';
 
 export async function initializeFirstAdmin(): Promise<void> {
   const adminRef = doc(db, ADMINS_COLLECTION, 'kobaiko@gmail.com');
@@ -43,11 +43,13 @@ export async function getAllUsers(): Promise<Array<{
   lastUpdated: Date;
 }>> {
   const creditsSnapshot = await getDocs(collection(db, CREDITS_COLLECTION));
-  const usersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
+  const auth = getAuth();
   
+  // Get all users from Firebase Auth
+  const { users } = await auth.listUsers();
   const userMap = new Map();
-  usersSnapshot.docs.forEach(doc => {
-    userMap.set(doc.id, doc.data().email);
+  users.forEach(user => {
+    userMap.set(user.uid, user.email);
   });
   
   return creditsSnapshot.docs.map(doc => {
