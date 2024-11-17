@@ -1,38 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Layout, Mail, Lock, User, AlertCircle, Check, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { FirebaseError } from 'firebase/app';
-import { saveMarketingConsent } from '../services/userService';
+import { Logo } from '../components/Logo';
 
 export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { signUp } = useAuth();
-
-  const passwordRules = {
-    lowercase: /[a-z]/.test(password),
-    uppercase: /[A-Z]/.test(password),
-    numeric: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-    length: password.length >= 6
-  };
-
-  const isPasswordValid = Object.values(passwordRules).every(rule => rule);
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!isPasswordValid) {
-      setError('Please ensure your password meets all requirements');
-      return;
-    }
 
     if (password !== confirmPassword) {
       return setError('Passwords do not match');
@@ -41,181 +24,107 @@ export function Register() {
     try {
       setError('');
       setLoading(true);
-      const user = await signUp(email, password, displayName);
-      
-      // Save marketing consent
-      if (user) {
-        await saveMarketingConsent(user.uid, {
-          email,
-          displayName,
-          marketingConsent,
-          timestamp: new Date()
-        });
-      }
-      
+      await signUp(email, password, displayName);
       navigate('/');
     } catch (err) {
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case 'auth/email-already-in-use':
-            setError('An account with this email already exists. Please sign in instead.');
-            break;
-          case 'auth/weak-password':
-            setError('Password should be at least 6 characters long.');
-            break;
-          case 'auth/invalid-email':
-            setError('Please enter a valid email address.');
-            break;
-          default:
-            setError('Failed to create an account. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
-      console.error(err);
+      console.error('Registration error:', err);
+      setError('Failed to create an account');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center">
-            <div className="flex items-center">
-              <Layout className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold">TaskEase</h1>
-              <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
-            </div>
+            <Logo size="lg" />
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+          <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Full Name
-            </label>
-            <div className="relative mt-1">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Display Name
+              </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="Enter your full name"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <div className="relative mt-1">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="Enter your email"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <div className="relative mt-1">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="••••••••"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
-                minLength={6}
               />
             </div>
-            <div className="mt-2 space-y-2">
-              {Object.entries(passwordRules).map(([rule, isValid]) => (
-                <div key={rule} className="flex items-center gap-2 text-sm">
-                  {isValid ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <X className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className={isValid ? 'text-green-600' : 'text-red-600'}>
-                    {rule === 'lowercase' && 'Lowercase character required'}
-                    {rule === 'uppercase' && 'Uppercase character required'}
-                    {rule === 'numeric' && 'Numeric character required'}
-                    {rule === 'special' && 'Non-alphanumeric character required'}
-                    {rule === 'length' && 'Minimum 6 characters required'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Confirm Password
-            </label>
-            <div className="relative mt-1">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Confirm Password
+              </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="••••••••"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
-                minLength={6}
               />
             </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Already have an account?{' '}
+              <Link
+                to="/login"
+                className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+              >
+                Sign in
+              </Link>
+            </p>
           </div>
-
-          <div className="flex items-start">
-            <div className="flex items-center h-5">
-              <input
-                id="marketing"
-                type="checkbox"
-                checked={marketingConsent}
-                onChange={(e) => setMarketingConsent(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-            </div>
-            <label htmlFor="marketing" className="ml-2 block text-sm text-gray-600 dark:text-gray-400">
-              I agree to receive product updates and marketing communications from TaskEase.
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !isPasswordValid}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-            Sign in
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

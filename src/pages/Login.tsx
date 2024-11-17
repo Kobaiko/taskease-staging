@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Layout, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { Logo } from '../components/Logo';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const navigate = useNavigate();
   const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,118 +19,79 @@ export function Login() {
       setLoading(true);
       await signIn(email, password);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Failed to sign in');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleForgotPassword(e: React.MouseEvent) {
-    e.preventDefault();
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
-
-    try {
-      setError('');
-      setSuccess('');
-      setResetLoading(true);
-      await sendPasswordResetEmail(auth, email);
-      setSuccess('Password reset email sent. Please check your inbox.');
-    } catch (err: any) {
-      setError('Failed to send password reset email. Please try again.');
-    } finally {
-      setResetLoading(false);
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center">
-            <div className="flex items-center">
-              <Layout className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold">TaskEase</h1>
-              <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">BETA</span>
-            </div>
+            <Logo size="lg" />
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-600 flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 p-4 rounded-lg bg-green-50 text-green-600">
-            <p className="text-sm">{success}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="Enter your email"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
               </label>
-              <button
-                onClick={handleForgotPassword}
-                disabled={resetLoading}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
-              >
-                {resetLoading ? 'Sending...' : 'Forgot password?'}
-              </button>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                placeholder="••••••••"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
               />
             </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link
+                to="/register"
+                className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+              >
+                Sign up
+              </Link>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-            Sign up
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

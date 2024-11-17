@@ -1,5 +1,6 @@
 import React from 'react';
-import { Layout } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Logo } from '../components/Logo';
 
 export function AccountDeleted() {
   return (
@@ -7,31 +8,23 @@ export function AccountDeleted() {
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <div className="flex items-center justify-center">
-            <Layout className="h-12 w-12 text-blue-600" />
-            <h1 className="ml-2 text-3xl font-bold">TaskEase</h1>
+            <Logo size="lg" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            We're sorry to see you go
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-8">
-            Your account has been deleted. Feel free to contact us at{' '}
-            <a 
-              href="mailto:hello@gotaskease.com" 
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              hello@gotaskease.com
-            </a>{' '}
-            with any query, and we'd love to see you back in the future.
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Account Deleted Successfully
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            We're sorry to see you go. Your account and all associated data have been permanently deleted.
           </p>
-          <a
-            href="https://gettaskease.com"
-            className="inline-block w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium text-center"
+          <Link
+            to="/register"
+            className="inline-block w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
           >
-            Go Home
-          </a>
+            Create New Account
+          </Link>
         </div>
       </div>
     </div>
