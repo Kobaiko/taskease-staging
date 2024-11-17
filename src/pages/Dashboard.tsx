@@ -98,6 +98,7 @@ export function Dashboard() {
       };
 
       setTasks(prev => [newTask, ...prev]);
+      setIsModalOpen(false);
     } catch (error) {
       console.error('Error creating task:', error);
     }
@@ -215,6 +216,7 @@ export function Dashboard() {
                   const updatedSubTasks = [...task.subTasks, subTask];
                   handleToggleSubTask(taskId, subTask.id);
                 }}
+                isNewlyCreated={tasks[0]?.id === task.id}
               />
             ))}
           </div>

@@ -66,10 +66,12 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
 
   return (
     <div className={`relative ${
-      showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-fuchsia-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
+      showAnimation ? 'animate-task-appear' : ''
     }`}>
-      <div className={`relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 ${!showAnimation ? 'border border-gray-200 dark:border-gray-700' : ''}`}>
-        <div className="p-6">
+      <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${
+        showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-fuchsia-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : 'border border-gray-200 dark:border-gray-700'
+      }`}>
+        <div className="relative z-10 p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{task.title}</h3>
