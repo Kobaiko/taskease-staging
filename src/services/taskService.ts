@@ -9,7 +9,8 @@ import {
   doc,
   serverTimestamp,
   getDoc,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Task, SubTask } from '../types';
@@ -26,7 +27,6 @@ export async function getUserTasks(userId: string): Promise<Task[]> {
     return {
       id: doc.id,
       ...data,
-      // Convert Firestore Timestamp to JavaScript Date
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
     } as Task;
   });
@@ -54,6 +54,19 @@ export async function updateTask(taskId: string, updates: Partial<Task>): Promis
 export async function deleteTask(taskId: string): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
   await deleteDoc(taskRef);
+}
+
+export async function deleteAllUserTasks(userId: string): Promise<void> {
+  const tasksRef = collection(db, TASKS_COLLECTION);
+  const q = query(tasksRef, where('userId', '==', userId));
+  const querySnapshot = await getDocs(q);
+  
+  const batch = writeBatch(db);
+  querySnapshot.docs.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  
+  await batch.commit();
 }
 
 export async function updateSubtaskStatus(taskId: string, subtaskId: string, completed: boolean): Promise<void> {
