@@ -65,10 +65,10 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
   }, [task.id, onDeleteTask]);
 
   return (
-    <div className={`card-container bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 relative ${
-      showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-purple-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
+    <div className={`relative ${
+      showAnimation ? 'before:absolute before:inset-0 before:rounded-xl before:p-[2px] before:bg-gradient-to-r before:from-purple-500 before:via-fuchsia-500 before:to-pink-500 before:animate-gradient-x before:content-[""] after:absolute after:inset-[2px] after:rounded-[10px] after:bg-white dark:after:bg-gray-800 after:content-[""]' : ''
     }`}>
-      <div className="relative z-10">
+      <div className={`relative z-10 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 ${!showAnimation ? 'border border-gray-200 dark:border-gray-700' : ''}`}>
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -93,7 +93,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
                     cy="24"
                   />
                   <circle
-                    className="text-blue-600 dark:text-blue-400"
+                    className="text-purple-600 dark:text-purple-400"
                     strokeWidth="2"
                     strokeDasharray={126}
                     strokeDashoffset={126 - (progress / 100) * 126}
@@ -156,19 +156,19 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
                 type="text"
                 value={newSubTask.title}
                 onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                className="flex-1 h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                className="flex-1 h-9 px-3 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 placeholder="Subtask title"
               />
               <input
                 type="number"
                 value={newSubTask.estimatedTime}
                 onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
-                className="w-20 h-9 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                className="w-20 h-9 px-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 placeholder="Min"
               />
               <button
                 onClick={handleAddSubTask}
-                className="h-9 w-9 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0"
+                className="h-9 w-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
               >
                 <Plus size={20} />
               </button>
@@ -176,7 +176,7 @@ export function TaskCard({ task, onToggleSubTask, onDeleteTask, onAddSubTask, is
           ) : (
             <button
               onClick={() => setShowAddSubTask(true)}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1 mb-4"
+              className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1 mb-4"
             >
               <Plus size={16} className="flex-shrink-0" />
               Add Subtask
