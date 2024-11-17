@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY // Changed to use VITE_ prefix
+  apiKey: process.env.OPENAI_API_KEY // Remove VITE_ prefix for Netlify Functions
 });
 
 const corsHeaders = {
@@ -20,6 +20,10 @@ export const handler = async (event) => {
   }
 
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const { title, description } = JSON.parse(event.body);
 
     if (!title || !description) {

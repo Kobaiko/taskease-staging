@@ -16,3 +16,6 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@google-cloud/firestore"]
+
+[build.environment]
+  NODE_VERSION = "18"
