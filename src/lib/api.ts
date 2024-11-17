@@ -11,12 +11,16 @@ export async function generateSubtasks(title: string, description: string): Prom
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.details || 'Failed to generate subtasks');
+      const errorData = await response.json();
+      throw new Error(errorData.details || 'Failed to generate subtasks');
     }
 
     const { subtasks } = await response.json();
     
+    if (!subtasks || !Array.isArray(subtasks)) {
+      throw new Error('Invalid response format');
+    }
+
     return subtasks.map((st: any) => ({
       id: crypto.randomUUID(),
       title: st.title,
