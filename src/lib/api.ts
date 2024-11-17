@@ -2,7 +2,7 @@ import type { SubTask } from '../types';
 
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
-    const response = await fetch('/api/generate-subtasks', {
+    const response = await fetch('/.netlify/functions/generate-subtasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

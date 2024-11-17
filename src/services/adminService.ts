@@ -40,16 +40,21 @@ export async function getAllUsers(): Promise<Array<{
   credits: number;
   lastUpdated: Date;
 }>> {
-  const response = await fetch('/.netlify/functions/list-users');
-  if (!response.ok) {
-    throw new Error('Failed to fetch users');
+  try {
+    const response = await fetch('/.netlify/functions/list-users');
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    const data = await response.json();
+    return data.users.map((user: any) => ({
+      ...user,
+      lastUpdated: new Date(user.lastUpdated)
+    }));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
   }
-  
-  const data = await response.json();
-  return data.users.map((user: any) => ({
-    ...user,
-    lastUpdated: new Date(user.lastUpdated)
-  }));
 }
 
 export async function setUserCredits(userId: string, credits: number): Promise<void> {
