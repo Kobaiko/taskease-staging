@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, Clock, Plus, Trash2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Plus, Trash2, AlertCircle } from 'lucide-react';
 import type { SubTask } from '../types';
 import { generateSubtasks } from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CreditsExhaustedModal } from './CreditsExhaustedModal';
 import { useAuth } from '../contexts/AuthContext';
 import { deductCredit } from '../services/creditService';
+import { NumberInput } from './NumberInput';
 
 interface NewTaskModalProps {
   isOpen: boolean;
@@ -81,7 +82,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setSubTasks([]);
       setShowAddManual(false);
       
-      // Show credits exhausted modal if this was the last credit
       if (credits === 0) {
         setShowCreditsExhausted(true);
       } else {
@@ -146,7 +146,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                   placeholder="Enter task title"
                   required
                 />
@@ -159,7 +159,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                   rows={3}
                   placeholder="Enter task description"
                   required
@@ -172,7 +172,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     type="button"
                     onClick={handleGenerateSubtasks}
                     disabled={!title || !description || isGenerating || credits <= 0}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isGenerating ? 'Generating...' : 'Generate Subtasks'}
                   </button>
@@ -195,10 +195,9 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     >
                       <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center text-gray-400 dark:text-gray-500 text-sm">
-                          <Clock size={14} className="mr-1" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                           {subTask.estimatedTime}m
-                        </div>
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleDeleteSubTask(subTask.id)}
@@ -216,20 +215,21 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                         type="text"
                         value={newSubTask.title}
                         onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                        className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
+                        className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white text-sm"
                         placeholder="Subtask"
                       />
-                      <input
-                        type="number"
-                        value={newSubTask.estimatedTime}
-                        onChange={(e) => setNewSubTask({ ...newSubTask, estimatedTime: e.target.value })}
-                        className="w-16 px-2 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
-                        placeholder="Min"
-                      />
+                      <div className="w-32">
+                        <NumberInput
+                          value={newSubTask.estimatedTime}
+                          onChange={(value) => setNewSubTask({ ...newSubTask, estimatedTime: value })}
+                          min={1}
+                          max={60}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={handleAddSubTask}
-                        className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                        className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
                       >
                         <Plus size={20} />
                       </button>
@@ -241,7 +241,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                       key="add-subtask-button"
                       type="button"
                       onClick={() => setShowAddManual(true)}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+                      className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1"
                     >
                       <Plus size={16} />
                       Add Subtask
@@ -261,7 +261,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 <button
                   type="submit"
                   disabled={!title || !description || subTasks.length === 0}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Task
                 </button>

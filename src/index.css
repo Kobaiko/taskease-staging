@@ -67,18 +67,3 @@
   animation: gradient-x 2s ease-in-out;
   background-size: 200% 200%;
 }
-
-@keyframes task-appear {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-task-appear {
-  animation: task-appear 0.5s ease-out forwards;
-}
