@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { X, User, Settings, LogOut, Mail, Lock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { X, User, Settings, LogOut, Mail, Lock, AlertCircle, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PhotoUpload } from './PhotoUpload';
 import { updateUserProfile, updateUserEmail, updateUserPassword } from '../services/userService';
+import { isUserAdmin } from '../services/adminService';
 
 interface ProfilePopupProps {
   isOpen: boolean;
@@ -23,8 +24,30 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { currentUser, logout, reauthenticate } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser?.email) {
+      checkAdminStatus(currentUser.email);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.displayName) {
+      setDisplayName(currentUser.displayName);
+    }
+  }, [currentUser]);
+
+  const checkAdminStatus = async (email: string) => {
+    try {
+      const adminStatus = await isUserAdmin(email);
+      setIsAdmin(adminStatus);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const handleUpdateProfile = async (file?: File) => {
     if (!currentUser) return;
@@ -39,7 +62,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       }
 
       await updateUserProfile({
-        displayName: displayName || currentUser.displayName,
+        displayName,
         photoURL
       });
 
@@ -149,14 +172,36 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
                   onPhotoSelect={handleUpdateProfile}
                   className="mb-4"
                 />
-                <input
-                  type="text"
-                  placeholder={currentUser.displayName || 'Enter your name'}
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full max-w-xs px-4 py-2 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-                />
+                <div className="w-full max-w-xs space-y-2">
+                  <input
+                    type="text"
+                    placeholder={currentUser.displayName || 'Enter your name'}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full px-4 py-2 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
+                  />
+                  <button
+                    onClick={() => handleUpdateProfile()}
+                    disabled={loading || !displayName || displayName === currentUser.displayName}
+                    className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save Name
+                  </button>
+                </div>
               </div>
+
+              {isAdmin && (
+                <div className="flex justify-center">
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-2 px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg font-medium"
+                    onClick={onClose}
+                  >
+                    <Shield className="w-5 h-5" />
+                    Admin Dashboard
+                  </Link>
+                </div>
+              )}
 
               <div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Update Email</h3>
