@@ -8,7 +8,7 @@ import { CookieConsent } from '../components/CookieConsent';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserTasks, createTask, updateTask, deleteTask } from '../services/taskService';
+import { getUserTasks, createTask, updateTask, deleteTask, updateSubtaskStatus } from '../services/taskService';
 import { saveUserTheme, getUserTheme } from '../services/userService';
 import { getUserCredits } from '../services/creditService';
 import type { Task, SubTask } from '../types';
@@ -17,8 +17,8 @@ export function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [credits, setCredits] = useState(0);
   const [isDark, setIsDark] = useState(false);
   const { currentUser } = useAuth();
@@ -30,11 +30,8 @@ export function Dashboard() {
     }
   }, [currentUser]);
 
-  async function loadUserData() {
+  const loadUserData = async () => {
     try {
-      setLoading(true);
-      setError('');
-
       const [userTasks, userCredits] = await Promise.all([
         getUserTasks(currentUser!.uid),
         getUserCredits(currentUser!.uid)
@@ -49,109 +46,101 @@ export function Dashboard() {
       setCredits(userCredits);
     } catch (err) {
       console.error('Error loading user data:', err);
-      setError('Failed to load your tasks. Please try again.');
+      setError('Failed to load tasks');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function loadTheme() {
-    try {
-      const theme = await getUserTheme(currentUser!.uid);
-      setIsDark(theme === 'dark');
-      document.documentElement.classList.toggle('dark', theme === 'dark');
-    } catch (err) {
-      console.error('Error loading theme:', err);
+  const loadTheme = async () => {
+    if (currentUser) {
+      const theme = await getUserTheme(currentUser.uid);
+      const isDarkTheme = theme === 'dark' || 
+        (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      setIsDark(isDarkTheme);
+      document.documentElement.classList.toggle('dark', isDarkTheme);
     }
-  }
+  };
 
-  async function toggleTheme() {
-    const newTheme = !isDark ? 'dark' : 'light';
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark', !isDark);
-    try {
-      await saveUserTheme(currentUser!.uid, newTheme);
-    } catch (err) {
-      console.error('Error saving theme:', err);
+  const toggleTheme = async () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    document.documentElement.classList.toggle('dark', newTheme);
+    if (currentUser) {
+      await saveUserTheme(currentUser.uid, newTheme ? 'dark' : 'light');
     }
-  }
+  };
 
-  async function handleCreateTask(title: string, description: string, subTasks: SubTask[]) {
+  const handleCreateTask = async (title: string, description: string, subTasks: SubTask[]) => {
+    if (!currentUser) return;
+
     try {
-      const taskData: Omit<Task, 'id'> = {
-        userId: currentUser!.uid,
+      const taskId = await createTask(currentUser.uid, {
+        userId: currentUser.uid,
         title,
         description,
         subTasks,
-        createdAt: new Date(),
-        completed: false
-      };
+        completed: false,
+        createdAt: new Date()
+      });
 
-      const taskId = await createTask(currentUser!.uid, taskData);
       const newTask: Task = {
         id: taskId,
-        ...taskData
+        userId: currentUser.uid,
+        title,
+        description,
+        subTasks,
+        completed: false,
+        createdAt: new Date()
       };
 
       setTasks(prevTasks => [newTask, ...prevTasks]);
-      setIsModalOpen(false);
     } catch (err) {
       console.error('Error creating task:', err);
-      setError('Failed to create task. Please try again.');
+      setError('Failed to create task');
     }
-  }
+  };
 
-  async function handleToggleSubTask(taskId: string, subTaskId: string) {
+  const handleToggleSubTask = async (taskId: string, subTaskId: string) => {
     try {
-      // First update local state to make UI responsive
-      setTasks(prevTasks => {
-        const updatedTasks = prevTasks.map(task => {
-          if (task.id !== taskId) return task;
-          
-          const updatedSubTasks = task.subTasks.map(st =>
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const subTask = task.subTasks.find(st => st.id === subTaskId);
+      if (!subTask) return;
+
+      await updateSubtaskStatus(taskId, subTaskId, !subTask.completed);
+
+      setTasks(prevTasks => prevTasks.map(t => {
+        if (t.id === taskId) {
+          const updatedSubTasks = t.subTasks.map(st =>
             st.id === subTaskId ? { ...st, completed: !st.completed } : st
           );
-          
           return {
-            ...task,
+            ...t,
             subTasks: updatedSubTasks,
             completed: updatedSubTasks.every(st => st.completed)
           };
-        });
-        return updatedTasks;
-      });
-
-      // Then update Firebase
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) throw new Error('Task not found');
-
-      const updatedSubTasks = task.subTasks.map(st =>
-        st.id === subTaskId ? { ...st, completed: !st.completed } : st
-      );
-
-      await updateTask(taskId, {
-        subTasks: updatedSubTasks,
-        completed: updatedSubTasks.every(st => st.completed)
-      });
+        }
+        return t;
+      }));
     } catch (err) {
       console.error('Error toggling subtask:', err);
-      // Revert local state if Firebase update fails
-      setTasks(prevTasks => [...prevTasks]);
-      setError('Failed to update subtask. Please try again.');
+      setError('Failed to update subtask');
     }
-  }
+  };
 
-  async function handleDeleteTask(taskId: string) {
+  const handleDeleteTask = async (taskId: string) => {
     try {
       await deleteTask(taskId);
       setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
     } catch (err) {
       console.error('Error deleting task:', err);
-      setError('Failed to delete task. Please try again.');
+      setError('Failed to delete task');
     }
-  }
+  };
 
-  async function handleAddSubTask(taskId: string, subTask: SubTask) {
+  const handleAddSubTask = async (taskId: string, subTask: SubTask) => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
@@ -162,12 +151,15 @@ export function Dashboard() {
       };
 
       await updateTask(taskId, updatedTask);
-      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
+
+      setTasks(prevTasks => prevTasks.map(t =>
+        t.id === taskId ? updatedTask : t
+      ));
     } catch (err) {
       console.error('Error adding subtask:', err);
-      setError('Failed to add subtask. Please try again.');
+      setError('Failed to add subtask');
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -218,34 +210,24 @@ export function Dashboard() {
           </div>
         )}
 
-        {tasks.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
+          {tasks.map(task => (
+            <div key={task.id} className="h-fit">
+              <TaskCard
+                task={task}
+                onToggleSubTask={handleToggleSubTask}
+                onDeleteTask={handleDeleteTask}
+                onAddSubTask={handleAddSubTask}
+              />
+            </div>
+          ))}
+        </div>
+
+        {tasks.length === 0 && (
           <div className="text-center py-12">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-              No tasks yet
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8">
-              Create your first task and let AI help you break it down into manageable steps.
+            <p className="text-gray-500 dark:text-gray-400">
+              No tasks yet. Click "New Task" to get started!
             </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              Create Your First Task
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
-            {tasks.map(task => (
-              <div key={task.id} className="h-fit">
-                <TaskCard
-                  task={task}
-                  onToggleSubTask={handleToggleSubTask}
-                  onDeleteTask={handleDeleteTask}
-                  onAddSubTask={handleAddSubTask}
-                />
-              </div>
-            ))}
           </div>
         )}
       </main>

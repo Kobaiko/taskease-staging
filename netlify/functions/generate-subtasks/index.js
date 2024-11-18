@@ -11,6 +11,7 @@ const corsHeaders = {
 };
 
 export const handler = async (event) => {
+  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -19,11 +20,22 @@ export const handler = async (event) => {
     };
   }
 
-  try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not configured');
-    }
+  // Only allow POST requests
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
 
+  try {
+    console.log('Received event:', { 
+      method: event.httpMethod,
+      headers: event.headers
+    });
+
+    // Parse the incoming request body
     const { title, description } = JSON.parse(event.body);
 
     if (!title || !description) {
@@ -37,39 +49,45 @@ export const handler = async (event) => {
       };
     }
 
+    console.log('Processing request for:', { title, description });
+
+    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
+    Task: ${title}
+    Description: ${description}
+    
+    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
+
     const completion = await openai.chat.completions.create({
       messages: [{ 
         role: "system", 
         content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
       }, {
         role: "user",
-        content: `Break down this task into smaller subtasks (max 60 minutes each):
-        Task: ${title}
-        Description: ${description}
-        
-        Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-        Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`
+        content: prompt
       }],
       model: "gpt-3.5-turbo",
       response_format: { type: "json_object" },
       temperature: 0.7,
     });
 
-    const content = completion.choices[0].message.content;
-    if (!content) {
-      throw new Error('No response content received from OpenAI');
+    if (!completion.choices[0]?.message?.content) {
+      throw new Error('No response received from OpenAI');
     }
 
-    const result = JSON.parse(content);
+    const result = JSON.parse(completion.choices[0].message.content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
     }
 
+    // Validate and sanitize subtasks
     const sanitizedSubtasks = result.subtasks.map(subtask => ({
       title: String(subtask.title).trim(),
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
+
+    console.log('Generated subtasks:', sanitizedSubtasks);
 
     return {
       statusCode: 200,

@@ -9,8 +9,7 @@ import {
   doc,
   serverTimestamp,
   getDoc,
-  Timestamp,
-  writeBatch
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Task, SubTask } from '../types';
@@ -27,6 +26,7 @@ export async function getUserTasks(userId: string): Promise<Task[]> {
     return {
       id: doc.id,
       ...data,
+      // Convert Firestore Timestamp to JavaScript Date
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
     } as Task;
   });
@@ -34,63 +34,26 @@ export async function getUserTasks(userId: string): Promise<Task[]> {
 
 export async function createTask(userId: string, task: Omit<Task, 'id'>): Promise<string> {
   const tasksRef = collection(db, TASKS_COLLECTION);
-  const timestamp = serverTimestamp();
-  
-  const taskData = {
+  const docRef = await addDoc(tasksRef, {
     ...task,
     userId,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
-
-  const docRef = await addDoc(tasksRef, taskData);
+    createdAt: serverTimestamp(),
+    completed: false
+  });
   return docRef.id;
 }
 
 export async function updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
-  
-  try {
-    // First verify the document exists
-    const docSnap = await getDoc(taskRef);
-    if (!docSnap.exists()) {
-      throw new Error(`Task document ${taskId} does not exist`);
-    }
-
-    // Create a clean update object
-    const updateData = {
-      ...updates,
-      updatedAt: serverTimestamp()
-    };
-
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => 
-      updateData[key] === undefined && delete updateData[key]
-    );
-
-    await updateDoc(taskRef, updateData);
-  } catch (error) {
-    console.error('Error updating task:', { taskId, updates, error });
-    throw error;
-  }
+  await updateDoc(taskRef, {
+    ...updates,
+    updatedAt: serverTimestamp()
+  });
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
   await deleteDoc(taskRef);
-}
-
-export async function deleteAllUserTasks(userId: string): Promise<void> {
-  const tasksRef = collection(db, TASKS_COLLECTION);
-  const q = query(tasksRef, where('userId', '==', userId));
-  const querySnapshot = await getDocs(q);
-  
-  const batch = writeBatch(db);
-  querySnapshot.docs.forEach(doc => {
-    batch.delete(doc.ref);
-  });
-  
-  await batch.commit();
 }
 
 export async function updateSubtaskStatus(taskId: string, subtaskId: string, completed: boolean): Promise<void> {

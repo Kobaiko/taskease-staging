@@ -3,14 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
-import { saveMarketingConsent } from '../services/userService';
 
 export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
@@ -26,18 +24,7 @@ export function Register() {
     try {
       setError('');
       setLoading(true);
-      const user = await signUp(email, password, displayName);
-      
-      // Save marketing consent
-      if (marketingConsent) {
-        await saveMarketingConsent(user.uid, {
-          email,
-          displayName,
-          marketingConsent: true,
-          timestamp: new Date()
-        });
-      }
-      
+      await signUp(email, password, displayName);
       navigate('/');
     } catch (err) {
       console.error('Registration error:', err);
@@ -115,19 +102,6 @@ export function Register() {
                 className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
                 required
               />
-            </div>
-
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                id="marketing"
-                checked={marketingConsent}
-                onChange={(e) => setMarketingConsent(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-              />
-              <label htmlFor="marketing" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                I agree to receive updates and marketing emails from TaskEase
-              </label>
             </div>
 
             <button

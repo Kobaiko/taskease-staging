@@ -6,7 +6,7 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
 interface MarketingConsent {
@@ -74,43 +74,48 @@ export async function saveBetaConsent(userId: string, data: BetaConsent) {
   });
 }
 
-async function deleteUserData(userId: string) {
-  const batch = writeBatch(db);
+async function deleteUserDocuments(userId: string) {
   const collections = [
     'tasks',
     'credits',
     'userPreferences',
     'marketing_consent',
-    'beta_consent'
+    'beta_consent',
+    'admins'
   ];
 
   for (const collectionName of collections) {
-    // Delete documents where userId is a field
-    const q = query(collection(db, collectionName), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    try {
+      // Delete documents where userId is a field
+      const q = query(collection(db, collectionName), where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        await Promise.all(
+          querySnapshot.docs.map(doc => deleteDoc(doc.ref))
+        );
+      }
 
-    // Also try to delete document with userId as the document ID
-    const docRef = doc(db, collectionName, userId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      batch.delete(docRef);
+      // Also try to delete document with userId as the document ID
+      const docRef = doc(db, collectionName, userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        await deleteDoc(docRef);
+      }
+    } catch (error) {
+      console.log(`Error deleting documents from ${collectionName}:`, error);
     }
   }
-
-  await batch.commit();
 }
 
 export async function deleteUserAccount(userId: string) {
   if (!auth.currentUser) throw new Error('No authenticated user');
 
   try {
-    // Delete all user data
-    await deleteUserData(userId);
-    
-    // Delete the user authentication account
+    // Delete user data
+    await deleteUserDocuments(userId);
+
+    // Finally, delete the user authentication account
     await deleteUser(auth.currentUser);
   } catch (error) {
     console.error('Error deleting user account:', error);

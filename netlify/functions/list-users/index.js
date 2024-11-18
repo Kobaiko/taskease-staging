@@ -6,9 +6,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 if (!getApps().length) {
   initializeApp({
     credential: cert({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.VITE_FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.VITE_FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     })
   });
 }
@@ -23,6 +23,7 @@ export const handler = async (event) => {
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   };
 
+  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -32,8 +33,10 @@ export const handler = async (event) => {
   }
 
   try {
+    // List all users from Firebase Auth
     const { users } = await auth.listUsers();
     
+    // Get credits from Firestore
     const creditsSnapshot = await db.collection('credits').get();
     const creditsMap = new Map();
     
@@ -44,6 +47,7 @@ export const handler = async (event) => {
       });
     });
 
+    // Combine user data with credits
     const userData = users.map(user => ({
       id: user.uid,
       email: user.email,
