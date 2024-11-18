@@ -32,7 +32,7 @@ export async function getUserTasks(userId: string): Promise<Task[]> {
   });
 }
 
-export async function createTask(userId: string, task: Omit<Task, 'id'>): Promise<Task> {
+export async function createTask(userId: string, task: Omit<Task, 'id'>): Promise<string> {
   const tasksRef = collection(db, TASKS_COLLECTION);
   const timestamp = serverTimestamp();
   
@@ -44,15 +44,7 @@ export async function createTask(userId: string, task: Omit<Task, 'id'>): Promis
   };
 
   const docRef = await addDoc(tasksRef, taskData);
-  
-  // Return the complete task with the generated ID and current timestamp
-  return {
-    id: docRef.id,
-    ...task,
-    userId,
-    createdAt: new Date(), // Use current date for immediate display
-    updatedAt: new Date()
-  };
+  return docRef.id;
 }
 
 export async function updateTask(taskId: string, updates: Partial<Task>): Promise<void> {

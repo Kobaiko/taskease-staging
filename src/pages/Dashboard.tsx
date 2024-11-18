@@ -78,7 +78,7 @@ export function Dashboard() {
 
   async function handleCreateTask(title: string, description: string, subTasks: SubTask[]) {
     try {
-      const task: Omit<Task, 'id'> = {
+      const taskData: Omit<Task, 'id'> = {
         userId: currentUser!.uid,
         title,
         description,
@@ -87,7 +87,12 @@ export function Dashboard() {
         completed: false
       };
 
-      const newTask = await createTask(currentUser!.uid, task);
+      const taskId = await createTask(currentUser!.uid, taskData);
+      const newTask: Task = {
+        id: taskId,
+        ...taskData
+      };
+
       setTasks(prevTasks => [newTask, ...prevTasks]);
       setIsModalOpen(false);
     } catch (err) {

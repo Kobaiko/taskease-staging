@@ -42,7 +42,16 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     try {
       await deductCredit(currentUser.uid);
       const generatedSubtasks = await generateSubtasks(title, description);
-      setSubTasks(generatedSubtasks);
+      console.log('Generated subtasks:', generatedSubtasks);
+      
+      // Map the generated subtasks to include IDs
+      const subtasksWithIds = generatedSubtasks.map(st => ({
+        ...st,
+        id: crypto.randomUUID(),
+        completed: false
+      }));
+
+      setSubTasks(subtasksWithIds);
       setShowAddManual(true);
       onCreditsUpdate();
     } catch (error) {
@@ -54,7 +63,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   };
 
   const handleAddSubTask = (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
@@ -223,7 +232,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </form>
                   )}
 
-                  {subTasks.length > 0 && !showAddManual && (
+                  {!showAddManual && (
                     <button
                       type="button"
                       onClick={() => setShowAddManual(true)}
