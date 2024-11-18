@@ -80,7 +80,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     setSubTasks(prev => prev.filter(st => st.id !== id));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title && description && subTasks.length > 0) {
       onSubmit(title, description, subTasks);
@@ -179,71 +179,73 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 </>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                  Subtasks
-                </label>
+              {subTasks.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                    Subtasks
+                  </label>
 
-                <div className="space-y-3">
-                  {subTasks.map((subTask) => (
-                    <div
-                      key={subTask.id}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                    >
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {subTask.estimatedTime}m
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSubTask(subTask.id)}
-                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {(showAddManual || subTasks.length > 0) && (
-                    <form onSubmit={handleAddSubTask} className="grid grid-cols-[1fr,auto,auto] gap-2">
-                      <input
-                        type="text"
-                        value={newSubTask.title}
-                        onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                        className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white text-sm"
-                        placeholder="Subtask"
-                      />
-                      <div className="w-32">
-                        <NumberInput
-                          value={newSubTask.estimatedTime}
-                          onChange={(value) => setNewSubTask({ ...newSubTask, estimatedTime: value })}
-                          min={1}
-                          max={60}
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
+                  <div className="space-y-3">
+                    {subTasks.map((subTask) => (
+                      <div
+                        key={subTask.id}
+                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
                       >
-                        <Plus size={20} />
-                      </button>
-                    </form>
-                  )}
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {subTask.estimatedTime}m
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubTask(subTask.id)}
+                            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
 
-                  {!showAddManual && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddManual(true)}
-                      className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1"
-                    >
-                      <Plus size={16} />
-                      Add Subtask
-                    </button>
-                  )}
+                    {showAddManual && (
+                      <form onSubmit={handleAddSubTask} className="grid grid-cols-[1fr,auto,auto] gap-2">
+                        <input
+                          type="text"
+                          value={newSubTask.title}
+                          onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
+                          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white text-sm"
+                          placeholder="Subtask"
+                        />
+                        <div className="w-32">
+                          <NumberInput
+                            value={newSubTask.estimatedTime}
+                            onChange={(value) => setNewSubTask({ ...newSubTask, estimatedTime: value })}
+                            min={1}
+                            max={60}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </form>
+                    )}
+
+                    {!showAddManual && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddManual(true)}
+                        className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1"
+                      >
+                        <Plus size={16} />
+                        Add Subtask
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-end gap-3">
                 <button
