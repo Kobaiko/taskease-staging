@@ -124,23 +124,6 @@ export function UserProfile() {
                 </button>
                 <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">User Profile</h1>
               </div>
-              <div className="mt-8 space-y-4">
-                <button
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </button>
-                
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                >
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  Delete my account
-                </button>
-              </div>
             </div>
 
             {error && (
@@ -226,6 +209,26 @@ export function UserProfile() {
                     Update Password
                   </button>
                 </form>
+              </div>
+
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5 mr-2" />
+                    Logout
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    Delete my account
+                  </button>
+                </div>
               </div>
             </div>
           </div>
