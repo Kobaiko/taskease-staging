@@ -236,35 +236,28 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                   </pre>
                 </div>
 
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Subtasks ({subTasks.length})
-                  </label>
-
-                  <div className="space-y-3">
-                    {subTasks.map((subTask) => (
-                      <div
-                        key={subTask.id}
-                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                      >
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {subTask.title}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {subTask.estimatedTime}m
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSubTask(subTask.id)}
-                            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium">Subtasks ({subTasks.length})</h3>
+                  
+                  {subTasks.length > 0 ? (
+                    <div className="space-y-2 mt-2">
+                      {subTasks.map((subtask) => (
+                        <div 
+                          key={subtask.id} 
+                          className="flex items-center justify-between p-2 bg-gray-700 rounded"
+                        >
+                          <div>
+                            <p className="text-white">{subtask.title}</p>
+                            <p className="text-sm text-gray-400">
+                              Estimated: {subtask.estimatedTime} minutes
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 mt-2">No subtasks yet</p>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-3">
