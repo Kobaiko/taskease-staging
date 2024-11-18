@@ -1,8 +1,9 @@
-import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { AdminUser } from '../types';
+import type { AdminUser, UserCredits } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
+const CREDITS_COLLECTION = 'credits';
 
 export async function initializeFirstAdmin(): Promise<void> {
   const adminRef = doc(db, ADMINS_COLLECTION, 'kobaiko@gmail.com');
@@ -36,24 +37,23 @@ export async function addAdmin(email: string, addedByEmail: string): Promise<voi
 
 export async function getAllUsers(): Promise<Array<{
   id: string;
-  email: string;
   credits: number;
   lastUpdated: Date;
 }>> {
-  const response = await fetch('/.netlify/functions/list-users');
-  if (!response.ok) {
-    throw new Error('Failed to fetch users');
-  }
+  const creditsSnapshot = await getDocs(collection(db, CREDITS_COLLECTION));
   
-  const data = await response.json();
-  return data.users.map((user: any) => ({
-    ...user,
-    lastUpdated: new Date(user.lastUpdated)
-  }));
+  return creditsSnapshot.docs.map(doc => {
+    const data = doc.data() as UserCredits;
+    return {
+      id: doc.id,
+      credits: data.credits,
+      lastUpdated: data.lastUpdated ? new Date(data.lastUpdated.seconds * 1000) : new Date()
+    };
+  });
 }
 
 export async function setUserCredits(userId: string, credits: number): Promise<void> {
-  const creditRef = doc(db, 'credits', userId);
+  const creditRef = doc(db, CREDITS_COLLECTION, userId);
   await setDoc(creditRef, {
     userId,
     credits,
