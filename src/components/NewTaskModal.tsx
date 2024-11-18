@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import type { SubTask } from '../types';
 import { generateSubtasks } from '../lib/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -41,6 +41,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     console.log('SubTasks contents:', subTasks);
   }, [subTasks]);
 
+  // @ts-ignore
   const updateSubTasks = (newTasks: SubTask[]) => {
     console.log('Attempting to update subtasks:', newTasks);
     setStateVersion(prev => prev + 1);
@@ -59,22 +60,20 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       
       const response = await generateSubtasks(title, description);
       
-      const tasks = typeof response === 'string' ? JSON.parse(response) : response;
-      
-      const tasksArray = Array.isArray(tasks) ? tasks : Object.values(tasks);
-      
-      const newSubTasks = tasksArray.map(st => ({
-        id: String(Math.random()).slice(2),
-        title: String(st.title || '').trim(),
-        estimatedTime: Number(st.estimatedTime) || 30,
-        completed: false
-      }));
-      
-      setSubTasks(newSubTasks);
-      setShowAddManual(true);
+      if (response) {
+        const newSubTasks = response.map((st: any) => ({
+          id: Math.random().toString(36).substring(7),
+          title: st.title,
+          estimatedTime: st.estimatedTime,
+          completed: false
+        }));
+        
+        setSubTasks(newSubTasks);
+        setShowAddManual(true);
+      }
     } catch (error) {
-      console.error('Error generating subtasks:', error);
-      setError('Failed to generate subtasks. Please try again.');
+      console.error('Error:', error);
+      setError('Failed to generate subtasks');
     } finally {
       setIsGenerating(false);
     }
@@ -246,6 +245,9 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                               Estimated: {subtask.estimatedTime} minutes
                             </p>
                           </div>
+                          <button onClick={() => handleDeleteSubTask(subtask.id)}>
+                            <X className="text-gray-400 hover:text-red-400" size={20} />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -253,6 +255,34 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     <p className="text-gray-400 mt-2">No subtasks yet</p>
                   )}
                 </div>
+
+                {subTasks.length > 0 && showAddManual && (
+                  <div className="space-y-2 mt-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newSubTask.title}
+                        onChange={(e) => setNewSubTask(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Subtask title"
+                        className="flex-1 rounded-md"
+                      />
+                      <input
+                        type="number"
+                        value={newSubTask.estimatedTime}
+                        onChange={(e) => setNewSubTask(prev => ({ ...prev, estimatedTime: e.target.value }))}
+                        placeholder="Minutes"
+                        className="w-24 rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddSubTask}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-3">
                   <button
