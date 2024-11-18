@@ -210,12 +210,35 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                   </>
                 )}
 
-                <div className="p-2 text-xs bg-gray-100 dark:bg-gray-900 mt-4">
-                  <pre>
-                    SubTasks count: {subTasks.length}
-                    {JSON.stringify(subTasks, null, 2)}
-                  </pre>
-                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="p-2 text-xs bg-gray-100 dark:bg-gray-900 mt-4">
+                    <pre>{JSON.stringify(subTasks, null, 2)}</pre>
+                  </div>
+                )}
+
+                {showAddManual && (
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={newSubTask.title}
+                      onChange={(e) => setNewSubTask(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Subtask title"
+                      className="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    />
+                    <NumberInput
+                      value={newSubTask.estimatedTime}
+                      onChange={(value) => setNewSubTask(prev => ({ ...prev, estimatedTime: value }))}
+                      className="w-24"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSubTask}
+                      className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-6">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
