@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogOut, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { PhotoUpload } from '../components/PhotoUpload';
-import { uploadUserPhoto, updateUserProfile, updateUserEmail, updateUserPassword } from '../services/userService';
+import { uploadUserPhoto, updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount } from '../services/userService';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function UserProfile() {
@@ -15,6 +15,7 @@ export function UserProfile() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -93,6 +94,21 @@ export function UserProfile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      if (!currentUser?.uid) throw new Error('No user found');
+      await deleteUserAccount(currentUser.uid);
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete account');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -108,13 +124,23 @@ export function UserProfile() {
                 </button>
                 <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">User Profile</h1>
               </div>
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center justify-center text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
-              >
-                <LogOut className="h-5 w-5 mr-2" />
-                Log Out
-              </button>
+              <div className="mt-8 space-y-4">
+                <button
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="flex items-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </button>
+                
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                >
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  Delete my account
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -211,7 +237,20 @@ export function UserProfile() {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogout}
         title="Confirm Logout"
-        message="Are you sure you want to log out?"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This will also delete all your tasks and cannot be undone!"
+        confirmText="Delete my account"
+        cancelText="Cancel"
+        confirmButtonClassName="bg-red-600 hover:bg-red-700 focus:ring-red-500"
       />
     </div>
   );
