@@ -52,14 +52,13 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
         completed: false
       }));
 
-      console.log('Formatted subtasks:', formattedSubtasks);
+      console.log('Formatted subtasks before setState:', formattedSubtasks);
       
-      setSubTasks(prevTasks => {
-        console.log('Previous tasks:', prevTasks);
-        const newTasks = [...formattedSubtasks];
-        console.log('New tasks:', newTasks);
-        return newTasks;
-      });
+      setSubTasks(formattedSubtasks);
+      
+      setTimeout(() => {
+        console.log('Verifying state update:', subTasks);
+      }, 0);
 
       setShowAddManual(true);
     } catch (error) {
@@ -126,137 +125,150 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   };
 
   useEffect(() => {
-    if (subTasks.length > 0) {
-      console.log('Subtasks updated:', subTasks);
-    }
+    console.log('SubTasks state changed:', subTasks);
   }, [subTasks]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSubTasks([]);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Create New Task</h2>
-              <button 
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Task Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-                  placeholder="Enter task title"
-                  required
-                />
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Create New Task</h2>
+                <button 
+                  onClick={handleClose}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X size={24} />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-                  rows={3}
-                  placeholder="Enter task description"
-                  required
-                />
-              </div>
-
-              {!subTasks.length && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateSubtasks()}
-                    disabled={!title || !description || isGenerating || credits <= 0}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isGenerating ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="animate-spin">⌛</span> Generating...
-                      </span>
-                    ) : (
-                      'Generate Subtasks'
-                    )}
-                  </button>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    {credits} credits remaining
-                  </div>
-                </>
+              {error && (
+                <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  <p className="text-sm">{error}</p>
+                </div>
               )}
 
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                  Subtasks ({subTasks.length})
-                </label>
-
-                <div className="space-y-3">
-                  {subTasks.map((subTask) => (
-                    <div
-                      key={subTask.id}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                    >
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {subTask.title}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {subTask.estimatedTime}m
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSubTask(subTask.id)}
-                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Task Title
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
+                    placeholder="Enter task title"
+                    required
+                  />
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!title || !description || subTasks.length === 0}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Create Task
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
+                    rows={3}
+                    placeholder="Enter task description"
+                    required
+                  />
+                </div>
+
+                {!subTasks.length && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateSubtasks()}
+                      disabled={!title || !description || isGenerating || credits <= 0}
+                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGenerating ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="animate-spin">⌛</span> Generating...
+                        </span>
+                      ) : (
+                        'Generate Subtasks'
+                      )}
+                    </button>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      {credits} credits remaining
+                    </div>
+                  </>
+                )}
+
+                <div className="p-2 text-xs bg-gray-100 dark:bg-gray-900 mt-4">
+                  <pre>
+                    SubTasks count: {subTasks.length}
+                    {JSON.stringify(subTasks, null, 2)}
+                  </pre>
+                </div>
+
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                    Subtasks ({subTasks.length})
+                  </label>
+
+                  <div className="space-y-3">
+                    {subTasks.map((subTask) => (
+                      <div
+                        key={subTask.id}
+                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
+                      >
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {subTask.title}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {subTask.estimatedTime}m
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubTask(subTask.id)}
+                            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!title || !description || subTasks.length === 0}
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Create Task
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <ConfirmDialog
         isOpen={showConfirm}
