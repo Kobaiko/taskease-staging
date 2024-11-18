@@ -103,24 +103,41 @@ export function Dashboard() {
 
   async function handleToggleSubTask(taskId: string, subTaskId: string) {
     try {
+      // First update local state to make UI responsive
+      setTasks(prevTasks => {
+        const updatedTasks = prevTasks.map(task => {
+          if (task.id !== taskId) return task;
+          
+          const updatedSubTasks = task.subTasks.map(st =>
+            st.id === subTaskId ? { ...st, completed: !st.completed } : st
+          );
+          
+          return {
+            ...task,
+            subTasks: updatedSubTasks,
+            completed: updatedSubTasks.every(st => st.completed)
+          };
+        });
+        return updatedTasks;
+      });
+
+      // Then update Firebase
       const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+      if (!task) throw new Error('Task not found');
 
       const updatedSubTasks = task.subTasks.map(st =>
         st.id === subTaskId ? { ...st, completed: !st.completed } : st
       );
 
-      const updatedTask = {
-        ...task,
+      await updateTask(taskId, {
         subTasks: updatedSubTasks,
         completed: updatedSubTasks.every(st => st.completed)
-      };
-
-      await updateTask(taskId, updatedTask);
-      setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
+      });
     } catch (err) {
-      console.error('Error updating subtask:', err);
-      setError('Failed to update task. Please try again.');
+      console.error('Error toggling subtask:', err);
+      // Revert local state if Firebase update fails
+      setTasks(prevTasks => [...prevTasks]);
+      setError('Failed to update subtask. Please try again.');
     }
   }
 

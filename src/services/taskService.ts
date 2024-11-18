@@ -50,13 +50,29 @@ export async function createTask(userId: string, task: Omit<Task, 'id'>): Promis
 export async function updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
   
-  const updateData = {
-    subTasks: updates.subTasks,
-    completed: updates.completed,
-    updatedAt: serverTimestamp()
-  };
+  try {
+    // First verify the document exists
+    const docSnap = await getDoc(taskRef);
+    if (!docSnap.exists()) {
+      throw new Error(`Task document ${taskId} does not exist`);
+    }
 
-  await updateDoc(taskRef, updateData);
+    // Create a clean update object
+    const updateData = {
+      ...updates,
+      updatedAt: serverTimestamp()
+    };
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => 
+      updateData[key] === undefined && delete updateData[key]
+    );
+
+    await updateDoc(taskRef, updateData);
+  } catch (error) {
+    console.error('Error updating task:', { taskId, updates, error });
+    throw error;
+  }
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
