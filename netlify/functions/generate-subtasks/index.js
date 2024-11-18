@@ -11,7 +11,6 @@ const corsHeaders = {
 };
 
 export const handler = async (event) => {
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -56,17 +55,17 @@ export const handler = async (event) => {
       temperature: 0.7,
     });
 
-    if (!completion.choices[0]?.message?.content) {
+    const content = completion.choices[0].message.content;
+    if (!content) {
       throw new Error('No response content received from OpenAI');
     }
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    const result = JSON.parse(content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
     }
 
-    // Validate and sanitize subtasks
     const sanitizedSubtasks = result.subtasks.map(subtask => ({
       title: String(subtask.title).trim(),
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
