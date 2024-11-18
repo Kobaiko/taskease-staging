@@ -7,9 +7,11 @@ interface NumberInputProps {
   min?: number;
   max?: number;
   name?: string;
+  className?: string;
+  placeholder?: string;
 }
 
-export function NumberInput({ value, onChange, min = 1, max = 60, name = 'minutes' }: NumberInputProps) {
+export function NumberInput({ value, onChange, min = 1, max = 60, name = 'minutes', className = '', placeholder = 'Min' }: NumberInputProps) {
   const handleIncrement = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -58,8 +60,8 @@ export function NumberInput({ value, onChange, min = 1, max = 60, name = 'minute
         value={value}
         onChange={handleChange}
         onBlur={handleBlur}
-        className="w-full h-9 pl-3 pr-12 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-        placeholder="Min"
+        className={`w-full h-9 pl-3 pr-12 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white ${className}`}
+        placeholder={placeholder}
         min={min}
         max={max}
         aria-label="Minutes"
