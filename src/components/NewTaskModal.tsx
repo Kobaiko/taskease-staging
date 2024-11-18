@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, AlertCircle } from 'lucide-react';
 import type { SubTask } from '../types';
 import { generateSubtasks } from '../lib/api';
@@ -37,10 +37,24 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       
       // Deduct credit first
       await deductCredit(currentUser!.uid);
-      onCreditsUpdate(); // Update credits display
+      onCreditsUpdate();
       
+      // Call the API and handle the response
       const generatedSubtasks = await generateSubtasks(title, description);
-      setSubTasks(generatedSubtasks);
+      console.log('Generated subtasks:', generatedSubtasks);
+
+      // Format the subtasks with required properties
+      const formattedSubtasks = generatedSubtasks.map(st => ({
+        id: crypto.randomUUID(),
+        title: String(st.title).trim(),
+        estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
+        completed: false
+      }));
+
+      console.log('Formatted subtasks:', formattedSubtasks);
+      
+      // Update state with new subtasks
+      setSubTasks(formattedSubtasks);
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
@@ -54,20 +68,25 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     }
   };
 
-  const handleAddSubTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent event bubbling
-    
+  const handleAddSubTask = () => {
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
-        title: newSubTask.title,
-        estimatedTime: parseInt(newSubTask.estimatedTime),
+        title: newSubTask.title.trim(),
+        estimatedTime: validateEstimatedTime(newSubTask.estimatedTime),
         completed: false,
       };
       setSubTasks(prev => [...prev, subTask]);
       setNewSubTask({ title: '', estimatedTime: '' });
     }
+  };
+
+  const validateEstimatedTime = (value: string): number => {
+    const time = Number(value);
+    if (isNaN(time) || time < 1 || time > 60) {
+      return 1;
+    }
+    return Math.min(Math.max(1, time), 60);
   };
 
   const handleDeleteSubTask = (id: string) => {
@@ -99,6 +118,12 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     setError('');
     onClose();
   };
+
+  useEffect(() => {
+    if (subTasks.length > 0) {
+      console.log('Subtasks updated:', subTasks);
+    }
+  }, [subTasks]);
 
   if (!isOpen) return null;
 
@@ -157,11 +182,17 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 <>
                   <button
                     type="button"
-                    onClick={handleGenerateSubtasks}
+                    onClick={() => handleGenerateSubtasks()}
                     disabled={!title || !description || isGenerating || credits <= 0}
                     className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isGenerating ? 'Generating...' : 'Generate Subtasks'}
+                    {isGenerating ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="animate-spin">⌛</span> Generating...
+                      </span>
+                    ) : (
+                      'Generate Subtasks'
+                    )}
                   </button>
                   <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                     {credits} credits remaining
@@ -169,10 +200,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 </>
               )}
 
-              {subTasks.length > 0 && (
+              {Array.isArray(subTasks) && subTasks.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Subtasks
+                    Subtasks ({subTasks.length})
                   </label>
 
                   <div className="space-y-3">
@@ -198,7 +229,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     ))}
 
                     {showAddManual && (
-                      <form onSubmit={handleAddSubTask} className="grid grid-cols-[1fr,auto,auto] gap-2">
+                      <div className="grid grid-cols-[1fr,auto,auto] gap-2">
                         <input
                           type="text"
                           value={newSubTask.title}
@@ -215,12 +246,13 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                           />
                         </div>
                         <button
-                          type="submit"
+                          type="button"
+                          onClick={handleAddSubTask}
                           className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
                         >
                           <Plus size={20} />
                         </button>
-                      </form>
+                      </div>
                     )}
 
                     {!showAddManual && (

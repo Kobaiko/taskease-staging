@@ -2,8 +2,6 @@ import type { SubTask } from '../types';
 
 export async function generateSubtasks(title: string, description: string): Promise<SubTask[]> {
   try {
-    console.log('Sending request to generate subtasks:', { title, description });
-    
     const response = await fetch('/.netlify/functions/generate-subtasks', {
       method: 'POST',
       headers: {
@@ -14,26 +12,23 @@ export async function generateSubtasks(title: string, description: string): Prom
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
-      console.error('Error response from server:', errorData);
       throw new Error(errorData.details || 'Failed to generate subtasks');
     }
 
     const data = await response.json();
-    console.log('Received response:', data);
+    console.log('Raw API response:', data);
+
+    // Extract subtasks array from response
+    const subtasks = data.subtasks;
     
-    if (!data.subtasks || !Array.isArray(data.subtasks)) {
-      throw new Error('Invalid response format');
+    if (!Array.isArray(subtasks)) {
+      throw new Error('Invalid response format: subtasks is not an array');
     }
 
-    // Map the response to include required SubTask properties
-    return data.subtasks.map((st: any) => ({
-      id: crypto.randomUUID(),
-      title: String(st.title).trim(),
-      estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
-      completed: false
-    }));
+    // Return the subtasks array directly
+    return subtasks;
   } catch (error) {
-    console.error('Error generating subtasks:', error);
+    console.error('Error in generateSubtasks:', error);
     throw error;
   }
 }
