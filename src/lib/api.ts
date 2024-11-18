@@ -13,7 +13,7 @@ export async function generateSubtasks(title: string, description: string): Prom
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
       console.error('Error response from server:', errorData);
       throw new Error(errorData.details || 'Failed to generate subtasks');
     }

@@ -22,7 +22,6 @@ export const handler = async (event) => {
 
   try {
     if (!process.env.OPENAI_API_KEY) {
-      console.error('OpenAI API key is missing');
       throw new Error('OpenAI API key is not configured');
     }
 
@@ -38,9 +37,6 @@ export const handler = async (event) => {
         })
       };
     }
-
-    console.log('Processing request with OpenAI key:', !!process.env.OPENAI_API_KEY);
-    console.log('Generating subtasks for:', { title, description });
 
     const completion = await openai.chat.completions.create({
       messages: [{ 
@@ -64,10 +60,7 @@ export const handler = async (event) => {
       throw new Error('No response content received from OpenAI');
     }
 
-    const content = completion.choices[0].message.content;
-    console.log('OpenAI response:', content);
-
-    const result = JSON.parse(content);
+    const result = JSON.parse(completion.choices[0].message.content);
     
     if (!result.subtasks || !Array.isArray(result.subtasks)) {
       throw new Error('Invalid response format from AI');
@@ -79,8 +72,6 @@ export const handler = async (event) => {
       estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
     }));
 
-    console.log('Returning sanitized subtasks:', sanitizedSubtasks);
-
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -89,14 +80,12 @@ export const handler = async (event) => {
 
   } catch (error) {
     console.error('Function error:', error);
-    
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Failed to generate subtasks',
-        details: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        details: error.message
       })
     };
   }

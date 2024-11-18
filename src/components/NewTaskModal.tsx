@@ -41,19 +41,11 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     
     try {
       await deductCredit(currentUser.uid);
-      const generatedSubtasks = await generateSubtasks(title, description);
-      console.log('Generated subtasks:', generatedSubtasks);
-      
-      // Map the generated subtasks to include IDs
-      const subtasksWithIds = generatedSubtasks.map(st => ({
-        ...st,
-        id: crypto.randomUUID(),
-        completed: false
-      }));
-
-      setSubTasks(subtasksWithIds);
-      setShowAddManual(true);
       onCreditsUpdate();
+      
+      const generatedSubtasks = await generateSubtasks(title, description);
+      setSubTasks(generatedSubtasks);
+      setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate subtasks');
