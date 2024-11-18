@@ -35,6 +35,11 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     console.log('Current subTasks state:', subTasks);
   }, [subTasks]);
 
+  useEffect(() => {
+    console.log('SubTasks state updated with length:', subTasks.length);
+    console.log('SubTasks contents:', subTasks);
+  }, [subTasks]);
+
   const handleGenerateSubtasks = async () => {
     if (!title || !description || credits <= 0) return;
     
@@ -45,12 +50,11 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       await deductCredit(currentUser!.uid);
       onCreditsUpdate();
       
-      const generatedSubtasks = await generateSubtasks(title, description);
-      console.log('Raw API response:', generatedSubtasks);
+      const response = await generateSubtasks(title, description);
+      console.log('Raw API response:', response);
       
-      if (!Array.isArray(generatedSubtasks)) {
-        throw new Error('Invalid API response format');
-      }
+      const generatedSubtasks = Array.from(response);
+      console.log('Converted to array:', generatedSubtasks);
       
       const formattedSubtasks: SubTask[] = generatedSubtasks.map(st => ({
         id: generateId(),
@@ -59,9 +63,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
         completed: false
       }));
       
-      console.log('All formatted subtasks:', formattedSubtasks);
+      console.log('Formatted subtasks before setState:', formattedSubtasks);
       
-      setSubTasks(formattedSubtasks);
+      setSubTasks([...formattedSubtasks]);
+      
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
