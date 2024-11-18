@@ -87,8 +87,7 @@ export function Dashboard() {
         completed: false
       };
 
-      const taskId = await createTask(currentUser!.uid, task);
-      const newTask = { id: taskId, ...task };
+      const newTask = await createTask(currentUser!.uid, task);
       setTasks(prevTasks => [newTask, ...prevTasks]);
       setIsModalOpen(false);
     } catch (err) {
