@@ -50,10 +50,10 @@ export function UserProfile() {
       setLoading(true);
       setError('');
       await updateUserEmail(newEmail);
-      setSuccess('Email updated successfully');
+      setSuccess('Verification email sent! Please check your new email address and click the verification link to complete the email change.');
       setNewEmail('');
-    } catch (err) {
-      setError('Failed to update email');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update email');
       console.error(err);
     } finally {
       setLoading(false);

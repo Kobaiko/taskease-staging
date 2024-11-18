@@ -1,6 +1,7 @@
 import { 
   updateProfile,
   updateEmail,
+  verifyBeforeUpdateEmail,
   updatePassword,
   deleteUser,
   EmailAuthProvider,
@@ -33,7 +34,9 @@ export async function updateUserProfile(data: {
 
 export async function updateUserEmail(newEmail: string) {
   if (!auth.currentUser) throw new Error('No authenticated user');
-  await updateEmail(auth.currentUser, newEmail);
+  await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+  // This will send a verification email to the new address
+  // The email won't be updated until the user clicks the link in the verification email
 }
 
 export async function updateUserPassword(newPassword: string) {
