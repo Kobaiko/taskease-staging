@@ -45,7 +45,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       const generatedSubtasks = await generateSubtasks(title, description);
       console.log('Generated subtasks:', generatedSubtasks);
 
-      const formattedSubtasks = generatedSubtasks.map(st => ({
+      const formattedSubtasks: SubTask[] = generatedSubtasks.map(st => ({
         id: crypto.randomUUID(),
         title: String(st.title).trim(),
         estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
@@ -54,7 +54,13 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
       console.log('Formatted subtasks:', formattedSubtasks);
       
-      setSubTasks([...formattedSubtasks]);
+      setSubTasks(prevTasks => {
+        console.log('Previous tasks:', prevTasks);
+        const newTasks = [...formattedSubtasks];
+        console.log('New tasks:', newTasks);
+        return newTasks;
+      });
+
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
@@ -200,38 +206,36 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 </>
               )}
 
-              {Array.isArray(subTasks) && subTasks.length > 0 && (
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Subtasks ({subTasks.length})
-                  </label>
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                  Subtasks ({subTasks.length})
+                </label>
 
-                  <div className="space-y-3">
-                    {subTasks.map((subTask) => (
-                      <div
-                        key={subTask.id}
-                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
-                      >
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {subTask.title}
+                <div className="space-y-3">
+                  {subTasks.map((subTask) => (
+                    <div
+                      key={subTask.id}
+                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
+                    >
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {subTask.title}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {subTask.estimatedTime}m
                         </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {subTask.estimatedTime}m
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSubTask(subTask.id)}
-                            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubTask(subTask.id)}
+                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <div className="flex justify-end gap-3">
                 <button
