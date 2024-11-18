@@ -28,6 +28,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [error, setError] = useState('');
   const { currentUser } = useAuth();
 
+  useEffect(() => {
+    console.log('Current subTasks state:', subTasks);
+  }, [subTasks]);
+
   const handleGenerateSubtasks = async () => {
     if (!title || !description || credits <= 0) return;
     
@@ -35,15 +39,12 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setIsGenerating(true);
       setError('');
       
-      // Deduct credit first
       await deductCredit(currentUser!.uid);
       onCreditsUpdate();
       
-      // Call the API and handle the response
       const generatedSubtasks = await generateSubtasks(title, description);
       console.log('Generated subtasks:', generatedSubtasks);
 
-      // Format the subtasks with required properties
       const formattedSubtasks = generatedSubtasks.map(st => ({
         id: crypto.randomUUID(),
         title: String(st.title).trim(),
@@ -53,8 +54,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
       console.log('Formatted subtasks:', formattedSubtasks);
       
-      // Update state with new subtasks
-      setSubTasks(formattedSubtasks);
+      setSubTasks([...formattedSubtasks]);
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
@@ -201,7 +201,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
               )}
 
               {Array.isArray(subTasks) && subTasks.length > 0 && (
-                <div>
+                <div className="mt-6">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
                     Subtasks ({subTasks.length})
                   </label>
@@ -212,7 +212,9 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                         key={subTask.id}
                         className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg"
                       >
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{subTask.title}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {subTask.title}
+                        </span>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             {subTask.estimatedTime}m
@@ -227,44 +229,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                         </div>
                       </div>
                     ))}
-
-                    {showAddManual && (
-                      <div className="grid grid-cols-[1fr,auto,auto] gap-2">
-                        <input
-                          type="text"
-                          value={newSubTask.title}
-                          onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                          className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white text-sm"
-                          placeholder="Subtask"
-                        />
-                        <div className="w-32">
-                          <NumberInput
-                            value={newSubTask.estimatedTime}
-                            onChange={(value) => setNewSubTask({ ...newSubTask, estimatedTime: value })}
-                            min={1}
-                            max={60}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAddSubTask}
-                          className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
-                        >
-                          <Plus size={20} />
-                        </button>
-                      </div>
-                    )}
-
-                    {!showAddManual && (
-                      <button
-                        type="button"
-                        onClick={() => setShowAddManual(true)}
-                        className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1"
-                      >
-                        <Plus size={16} />
-                        Add Subtask
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
@@ -304,6 +268,14 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
         isOpen={showCreditsExhausted}
         onClose={() => setShowCreditsExhausted(false)}
       />
+
+      {process.env.NODE_ENV === 'development' && (
+        <div className="p-4 bg-gray-100 dark:bg-gray-900 mt-4">
+          <pre className="text-xs">
+            {JSON.stringify({ subTasks, showAddManual }, null, 2)}
+          </pre>
+        </div>
+      )}
     </>
   );
 }
