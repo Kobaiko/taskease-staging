@@ -19,6 +19,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
+  const [stateVersion, setStateVersion] = useState(0);
   const [newSubTask, setNewSubTask] = useState({ title: '', estimatedTime: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -40,6 +41,12 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     console.log('SubTasks contents:', subTasks);
   }, [subTasks]);
 
+  const updateSubTasks = (newTasks: SubTask[]) => {
+    console.log('Attempting to update subtasks:', newTasks);
+    setStateVersion(prev => prev + 1);
+    setSubTasks(newTasks);
+  };
+
   const handleGenerateSubtasks = async () => {
     if (!title || !description || credits <= 0) return;
     
@@ -51,21 +58,17 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       onCreditsUpdate();
       
       const response = await generateSubtasks(title, description);
-      console.log('Raw API response:', response);
       
-      const generatedSubtasks = Array.from(response);
-      console.log('Converted to array:', generatedSubtasks);
-      
-      const formattedSubtasks: SubTask[] = generatedSubtasks.map(st => ({
+      const newSubTasks = response.map(st => ({
         id: generateId(),
         title: String(st.title).trim(),
         estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
         completed: false
       }));
       
-      console.log('Formatted subtasks before setState:', formattedSubtasks);
+      setSubTasks(newSubTasks);
       
-      setSubTasks([...formattedSubtasks]);
+      localStorage.setItem('tempSubTasks', JSON.stringify(newSubTasks));
       
       setShowAddManual(true);
     } catch (error) {
@@ -79,6 +82,19 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setIsGenerating(false);
     }
   };
+
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('tempSubTasks');
+    if (savedTasks && subTasks.length === 0) {
+      setSubTasks(JSON.parse(savedTasks));
+    }
+  }, [subTasks.length]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      localStorage.removeItem('tempSubTasks');
+    }
+  }, [isOpen]);
 
   const handleAddSubTask = () => {
     if (newSubTask.title && newSubTask.estimatedTime) {
@@ -132,8 +148,8 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   };
 
   useEffect(() => {
-    console.log('SubTasks state changed:', subTasks);
-  }, [subTasks]);
+    console.log('State changed - version:', stateVersion, 'subtasks:', subTasks);
+  }, [stateVersion, subTasks]);
 
   console.log('Rendering with subtasks:', subTasks);
 
