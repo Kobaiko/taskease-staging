@@ -29,30 +29,26 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const { currentUser } = useAuth();
 
   const handleGenerateSubtasks = async () => {
-    if (!title || !description || !currentUser) return;
-    
-    if (credits <= 0) {
-      setError('No credits remaining. Please add subtasks manually.');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
+    if (!title || !description || credits <= 0) return;
     
     try {
-      // First deduct the credit
-      await deductCredit(currentUser.uid);
-      onCreditsUpdate();
+      setIsGenerating(true);
+      setError('');
       
-      // Then generate subtasks
+      // Deduct credit first
+      await deductCredit(currentUser!.uid);
+      onCreditsUpdate(); // Update credits display
+      
       const generatedSubtasks = await generateSubtasks(title, description);
-      
-      // Update state with generated subtasks
       setSubTasks(generatedSubtasks);
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate subtasks');
+      setError('Failed to generate subtasks. Please try again.');
+      
+      if (error instanceof Error && error.message.includes('insufficient credits')) {
+        setShowCreditsExhausted(true);
+      }
     } finally {
       setIsGenerating(false);
     }
