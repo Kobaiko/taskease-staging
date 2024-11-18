@@ -42,10 +42,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     try {
       await deductCredit(currentUser.uid);
       const generatedSubtasks = await generateSubtasks(title, description);
-      setSubTasks(generatedSubtasks.map(st => ({
-        ...st,
-        id: crypto.randomUUID()
-      })));
+      setSubTasks(generatedSubtasks);
       setShowAddManual(true);
       onCreditsUpdate();
     } catch (error) {
@@ -56,7 +53,8 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     }
   };
 
-  const handleAddSubTask = () => {
+  const handleAddSubTask = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent form submission
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
         id: crypto.randomUUID(),
@@ -64,13 +62,13 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
         estimatedTime: parseInt(newSubTask.estimatedTime),
         completed: false,
       };
-      setSubTasks([...subTasks, subTask]);
+      setSubTasks(prev => [...prev, subTask]);
       setNewSubTask({ title: '', estimatedTime: '' });
     }
   };
 
   const handleDeleteSubTask = (id: string) => {
-    setSubTasks(subTasks.filter(st => st.id !== id));
+    setSubTasks(prev => prev.filter(st => st.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,12 +79,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       setDescription('');
       setSubTasks([]);
       setShowAddManual(false);
-      
-      if (credits === 0) {
-        setShowCreditsExhausted(true);
-      } else {
-        onClose();
-      }
+      onClose();
     }
   };
 
@@ -105,11 +98,6 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     setShowAddManual(false);
     setShowConfirm(false);
     setError('');
-    onClose();
-  };
-
-  const handleCreditsExhaustedClose = () => {
-    setShowCreditsExhausted(false);
     onClose();
   };
 
@@ -209,8 +197,8 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                     </div>
                   ))}
 
-                  {showAddManual && (
-                    <div key="add-subtask-form" className="grid grid-cols-[1fr,auto,auto] gap-2">
+                  {(showAddManual || subTasks.length > 0) && (
+                    <form onSubmit={handleAddSubTask} className="grid grid-cols-[1fr,auto,auto] gap-2">
                       <input
                         type="text"
                         value={newSubTask.title}
@@ -227,18 +215,16 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                         />
                       </div>
                       <button
-                        type="button"
-                        onClick={handleAddSubTask}
+                        type="submit"
                         className="w-9 h-9 flex items-center justify-center bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex-shrink-0"
                       >
                         <Plus size={20} />
                       </button>
-                    </div>
+                    </form>
                   )}
 
                   {subTasks.length > 0 && !showAddManual && (
                     <button
-                      key="add-subtask-button"
                       type="button"
                       onClick={() => setShowAddManual(true)}
                       className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium flex items-center gap-1"
@@ -283,7 +269,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
       <CreditsExhaustedModal
         isOpen={showCreditsExhausted}
-        onClose={handleCreditsExhaustedClose}
+        onClose={() => setShowCreditsExhausted(false)}
       />
     </>
   );

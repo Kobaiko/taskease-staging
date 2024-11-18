@@ -25,10 +25,11 @@ export async function generateSubtasks(title: string, description: string): Prom
       throw new Error('Invalid response format');
     }
 
+    // Map the response to include required SubTask properties
     return data.subtasks.map((st: any) => ({
       id: crypto.randomUUID(),
-      title: st.title,
-      estimatedTime: Math.min(st.estimatedTime, 60),
+      title: String(st.title).trim(),
+      estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
       completed: false
     }));
   } catch (error) {
