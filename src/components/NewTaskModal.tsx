@@ -59,25 +59,22 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       
       const response = await generateSubtasks(title, description);
       
-      const newSubTasks = response.map(st => ({
-        id: generateId(),
-        title: String(st.title).trim(),
-        estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
+      const tasks = typeof response === 'string' ? JSON.parse(response) : response;
+      
+      const tasksArray = Array.isArray(tasks) ? tasks : Object.values(tasks);
+      
+      const newSubTasks = tasksArray.map(st => ({
+        id: String(Math.random()).slice(2),
+        title: String(st.title || '').trim(),
+        estimatedTime: Number(st.estimatedTime) || 30,
         completed: false
       }));
       
       setSubTasks(newSubTasks);
-      
-      localStorage.setItem('tempSubTasks', JSON.stringify(newSubTasks));
-      
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
       setError('Failed to generate subtasks. Please try again.');
-      
-      if (error instanceof Error && error.message.includes('insufficient credits')) {
-        setShowCreditsExhausted(true);
-      }
     } finally {
       setIsGenerating(false);
     }
@@ -180,30 +177,27 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="taskTitle" className="block text-sm font-medium">
                     Task Title
                   </label>
                   <input
+                    id="taskTitle"
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-                    placeholder="Enter task title"
-                    required
+                    className="mt-1 block w-full rounded-md"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="taskDescription" className="block text-sm font-medium">
                     Description
                   </label>
                   <textarea
+                    id="taskDescription"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
-                    rows={3}
-                    placeholder="Enter task description"
-                    required
+                    className="mt-1 block w-full rounded-md"
                   />
                 </div>
 
