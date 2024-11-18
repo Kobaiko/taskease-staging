@@ -49,10 +49,14 @@ export async function createTask(userId: string, task: Omit<Task, 'id'>): Promis
 
 export async function updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
   const taskRef = doc(db, TASKS_COLLECTION, taskId);
-  await updateDoc(taskRef, {
-    ...updates,
+  
+  const updateData = {
+    subTasks: updates.subTasks,
+    completed: updates.completed,
     updatedAt: serverTimestamp()
-  });
+  };
+
+  await updateDoc(taskRef, updateData);
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
