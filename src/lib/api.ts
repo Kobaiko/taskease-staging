@@ -57,7 +57,7 @@ Example:
       throw new Error('Invalid response format from OpenAI');
     }
 
-    return result.subtasks.map(subtask => ({
+    return result.subtasks.map((subtask: { title: string; estimatedTime: number }) => ({
       id: crypto.randomUUID(),
       title: subtask.title,
       estimatedTime: Math.min(subtask.estimatedTime, 60),

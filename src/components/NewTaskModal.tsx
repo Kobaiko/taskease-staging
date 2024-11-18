@@ -41,7 +41,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     
     try {
       await deductCredit(currentUser.uid);
-      const generatedSubtasks = await generateSubtasks(title, description);
+      const generatedSubtasks: SubTask[] = await generateSubtasks(title, description);
       setSubTasks(generatedSubtasks.map(st => ({
         ...st,
         id: crypto.randomUUID()
