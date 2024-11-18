@@ -7,7 +7,8 @@ import {
   onAuthStateChanged,
   updateProfile,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../lib/firebase';
@@ -21,6 +22,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName: string) => Promise<User>;
   logout: () => Promise<void>;
   reauthenticate: (password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -91,13 +93,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function resetPassword(email: string) {
+    await sendPasswordResetEmail(auth, email);
+  }
+
   const value = {
     currentUser,
     loading,
     signIn,
     signUp,
     logout,
-    reauthenticate
+    reauthenticate,
+    resetPassword
   };
 
   return (
