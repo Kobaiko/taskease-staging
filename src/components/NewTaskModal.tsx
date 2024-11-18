@@ -27,6 +27,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [error, setError] = useState('');
   const { currentUser } = useAuth();
 
+  const generateId = (): string => {
+    return Math.random().toString(36).substr(2, 9);
+  };
+
   useEffect(() => {
     console.log('Current subTasks state:', subTasks);
   }, [subTasks]);
@@ -42,19 +46,22 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       onCreditsUpdate();
       
       const generatedSubtasks = await generateSubtasks(title, description);
+      console.log('Raw API response:', generatedSubtasks);
+      
+      if (!Array.isArray(generatedSubtasks)) {
+        throw new Error('Invalid API response format');
+      }
       
       const formattedSubtasks: SubTask[] = generatedSubtasks.map(st => ({
-        id: crypto.randomUUID(),
+        id: generateId(),
         title: String(st.title).trim(),
         estimatedTime: Math.min(Math.max(1, Number(st.estimatedTime)), 60),
         completed: false
       }));
       
-      setSubTasks(prevSubTasks => {
-        console.log('Setting subtasks to:', formattedSubtasks);
-        return formattedSubtasks;
-      });
-
+      console.log('All formatted subtasks:', formattedSubtasks);
+      
+      setSubTasks(formattedSubtasks);
       setShowAddManual(true);
     } catch (error) {
       console.error('Error generating subtasks:', error);
@@ -71,7 +78,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const handleAddSubTask = () => {
     if (newSubTask.title && newSubTask.estimatedTime) {
       const subTask: SubTask = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         title: newSubTask.title.trim(),
         estimatedTime: validateEstimatedTime(newSubTask.estimatedTime),
         completed: false,
@@ -123,11 +130,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
     console.log('SubTasks state changed:', subTasks);
   }, [subTasks]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSubTasks([]);
-    }
-  }, [isOpen]);
+  console.log('Rendering with subtasks:', subTasks);
 
   if (!isOpen) return null;
 
