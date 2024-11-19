@@ -25,6 +25,8 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePasswordInput, setShowDeletePasswordInput] = useState(false);
   const { currentUser, logout, reauthenticate } = useAuth();
   const navigate = useNavigate();
 
@@ -137,12 +139,24 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const handleDeleteAccount = async () => {
     try {
       if (!currentUser?.uid) throw new Error('No user found');
+      
+      if (!deletePassword) {
+        setShowDeletePasswordInput(true);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      await reauthenticate(deletePassword);
       await deleteUserAccount(currentUser.uid);
       onClose();
       navigate('/delete-feedback');
     } catch (error) {
       console.error('Delete account error:', error);
-      setError('Failed to delete account');
+      setError('Failed to delete account. Please verify your password and try again.');
+    } finally {
+      setLoading(false);
+      setDeletePassword('');
     }
   };
 
@@ -324,12 +338,36 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setShowDeletePasswordInput(false);
+          setDeletePassword('');
+          setError('');
+        }}
         onConfirm={handleDeleteAccount}
         title="Delete Account"
-        message="Are you sure you want to delete all your TaskEase Data and Profile? This cannot be undone!"
-        confirmText="Yes, please delete all my data and profile"
-        cancelText="Keep my Data and profile"
+        message={
+          showDeletePasswordInput ? (
+            <div className="space-y-4">
+              <p>Please enter your password to confirm account deletion:</p>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="pl-10 w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:text-white"
+                  placeholder="Enter your password"
+                  autoFocus
+                />
+              </div>
+            </div>
+          ) : (
+            "Are you sure you want to delete all your TaskEase Data and Profile? This cannot be undone!"
+          )
+        }
+        confirmText={showDeletePasswordInput ? "Confirm Deletion" : "Yes, please delete all my data and profile"}
+        cancelText={showDeletePasswordInput ? "Cancel" : "Keep my Data and profile"}
         confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm"
         cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
       />
