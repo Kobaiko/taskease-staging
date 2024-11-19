@@ -368,8 +368,9 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
         }
         confirmText={showDeletePasswordInput ? "Delete forever" : "Delete forever"}
         cancelText={showDeletePasswordInput ? "Cancel!" : "Cancel!"}
-        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm font-normal underline"
-        cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500 font-medium"
+        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-xs font-normal underline py-1"
+        cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500 font-medium text-white px-6 py-2 rounded-lg"
+        reverseButtonOrder={true}
       />
     </>
   );

@@ -4,12 +4,15 @@ import { X } from 'lucide-react';
 interface ConfirmDialogProps {
   isOpen: boolean;
   title: string;
-  message: string;
+  message: React.ReactNode;
   onConfirm: () => void;
   onClose: () => void;
   confirmText?: string;
   cancelText?: string;
   isDangerous?: boolean;
+  confirmButtonClassName?: string;
+  cancelButtonClassName?: string;
+  reverseButtonOrder?: boolean;
 }
 
 export function ConfirmDialog({ 
@@ -20,9 +23,37 @@ export function ConfirmDialog({
   onClose,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  isDangerous = false
+  isDangerous = false,
+  confirmButtonClassName,
+  cancelButtonClassName,
+  reverseButtonOrder = false
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
+
+  const defaultConfirmClass = `px-4 py-2 text-white rounded-lg transition-colors ${
+    isDangerous 
+      ? 'bg-red-600 hover:bg-red-700' 
+      : 'bg-blue-600 hover:bg-blue-700'
+  }`;
+
+  const defaultCancelClass = "px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors";
+
+  const buttons = [
+    <button
+      key="cancel"
+      onClick={onClose}
+      className={cancelButtonClassName || defaultCancelClass}
+    >
+      {cancelText}
+    </button>,
+    <button
+      key="confirm"
+      onClick={onConfirm}
+      className={confirmButtonClassName || defaultConfirmClass}
+    >
+      {confirmText}
+    </button>
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -37,24 +68,9 @@ export function ConfirmDialog({
               <X size={20} />
             </button>
           </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+          <div className="text-gray-600 dark:text-gray-300 mb-6">{message}</div>
           <div className="flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={onConfirm}
-              className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                isDangerous 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {confirmText}
-            </button>
+            {reverseButtonOrder ? buttons.reverse() : buttons}
           </div>
         </div>
       </div>
