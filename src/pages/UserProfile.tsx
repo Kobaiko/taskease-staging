@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogOut, AlertCircle, X } from 'lucide-react';
+import { Mail, Lock, LogOut, AlertCircle, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { PhotoUpload } from '../components/PhotoUpload';
 import { uploadUserPhoto, updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount } from '../services/userService';
@@ -100,7 +100,7 @@ export function UserProfile() {
       setError('');
       if (!currentUser?.uid) throw new Error('No user found');
       await deleteUserAccount(currentUser.uid);
-      navigate('/login');
+      navigate('/delete-feedback');
     } catch (err: any) {
       setError(err.message || 'Failed to delete account');
       console.error(err);
@@ -211,7 +211,7 @@ export function UserProfile() {
                 </form>
               </div>
 
-              <div className="mt-8">
+              <div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Management</h3>
                 <div className="space-y-3">
                   <button
@@ -226,7 +226,7 @@ export function UserProfile() {
                     onClick={() => setShowDeleteConfirm(true)}
                     className="w-full flex items-center justify-center px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                   >
-                    <AlertCircle className="w-5 h-5 mr-2" />
+                    <Trash2 className="w-5 h-5 mr-2" />
                     Delete my account
                   </button>
                 </div>
@@ -251,10 +251,11 @@ export function UserProfile() {
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteAccount}
         title="Delete Account"
-        message="Are you sure you want to delete your account? This will also delete all your tasks and cannot be undone!"
-        confirmText="Delete my account"
-        cancelText="Cancel"
-        confirmButtonClassName="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+        message="Are you sure you want to delete all your TaskEase Data and Profile? This cannot be undone!"
+        confirmText="Yes, please delete all my data and profile"
+        cancelText="Keep my Data and profile"
+        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm"
+        cancelButtonClassName="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
       />
     </div>
   );

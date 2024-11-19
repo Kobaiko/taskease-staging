@@ -7,6 +7,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { AccountDeleted } from './pages/AccountDeleted';
+import { DeleteFeedback } from './pages/DeleteFeedback';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/account-deleted" element={<AccountDeleted />} />
+          <Route path="/delete-feedback" element={<DeleteFeedback />} />
           <Route
             path="/"
             element={
