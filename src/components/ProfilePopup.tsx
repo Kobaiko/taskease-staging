@@ -366,10 +366,10 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
             "Are you sure you want to delete all your TaskEase Data and Profile? This cannot be undone!"
           )
         }
-        confirmText={showDeletePasswordInput ? "Confirm Deletion" : "Yes, please delete all my data and profile"}
-        cancelText={showDeletePasswordInput ? "Cancel" : "Keep my Data and profile"}
-        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm"
-        cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
+        confirmText={showDeletePasswordInput ? "Delete forever" : "Delete forever"}
+        cancelText={showDeletePasswordInput ? "Cancel!" : "Cancel!"}
+        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm font-normal underline"
+        cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500 font-medium"
       />
     </>
   );
