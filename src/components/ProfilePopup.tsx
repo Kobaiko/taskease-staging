@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { X, User, Settings, LogOut, Mail, Lock, AlertCircle, Shield } from 'lucide-react';
+import { X, User, Settings, LogOut, Mail, Lock, AlertCircle, Shield, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PhotoUpload } from './PhotoUpload';
-import { updateUserProfile, updateUserEmail, updateUserPassword } from '../services/userService';
+import { updateUserProfile, updateUserEmail, updateUserPassword, deleteUserAccount } from '../services/userService';
 import { isUserAdmin } from '../services/adminService';
 
 interface ProfilePopupProps {
@@ -131,6 +131,18 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
     } catch (error) {
       console.error('Logout error:', error);
       setError('Failed to log out');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      if (!currentUser?.uid) throw new Error('No user found');
+      await deleteUserAccount(currentUser.uid);
+      onClose();
+      navigate('/delete-feedback');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      setError('Failed to delete account');
     }
   };
 
@@ -279,13 +291,20 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
                 </form>
               </div>
 
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                 <button
                   onClick={() => setShowLogoutConfirm(true)}
-                  className="w-full flex items-center justify-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                  className="w-full flex items-center justify-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
                 >
                   <LogOut className="w-5 h-5 mr-2" />
                   Log Out
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full flex items-center justify-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                >
+                  <Trash2 className="w-5 h-5 mr-2" />
+                  Delete my profile
                 </button>
               </div>
             </div>
@@ -306,15 +325,13 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={() => {
-          // Handle account deletion
-          setShowDeleteConfirm(false);
-        }}
+        onConfirm={handleDeleteAccount}
         title="Delete Account"
-        message="Are you sure you want to delete your account? This action cannot be undone."
-        confirmText="Delete Account"
-        cancelText="Cancel"
-        isDangerous
+        message="Are you sure you want to delete all your TaskEase Data and Profile? This cannot be undone!"
+        confirmText="Yes, please delete all my data and profile"
+        cancelText="Keep my Data and profile"
+        confirmButtonClassName="text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 text-sm"
+        cancelButtonClassName="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
       />
     </>
   );
