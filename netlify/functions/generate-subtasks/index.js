@@ -11,7 +11,6 @@ const corsHeaders = {
 };
 
 export const handler = async (event) => {
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -20,7 +19,6 @@ export const handler = async (event) => {
     };
   }
 
-  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -30,12 +28,6 @@ export const handler = async (event) => {
   }
 
   try {
-    console.log('Received event:', { 
-      method: event.httpMethod,
-      headers: event.headers
-    });
-
-    // Parse the incoming request body
     const { title, description } = JSON.parse(event.body);
 
     if (!title || !description) {
@@ -49,31 +41,74 @@ export const handler = async (event) => {
       };
     }
 
-    console.log('Processing request for:', { title, description });
+    const prompt = `Analyze and break down the following task into detailed subtasks:
 
-    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
-    Task: ${title}
-    Description: ${description}
-    
-    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
+TASK INFORMATION:
+Title: ${title}
+Description: ${description}
+
+ANALYSIS REQUIREMENTS:
+- Generate between 10-20 subtasks
+- Each subtask must be:
+  • Clearly defined with specific outcomes
+  • Self-contained and independently actionable
+  • Properly scoped (not too broad or too narrow)
+  • Labeled with required skills/resources
+
+For each subtask, provide:
+- Clear, action-oriented description
+- Estimated time (in minutes, maximum 60 per subtask)
+- Complexity level (Low/Medium/High)
+- Priority level (1-3, where 1 is highest)
+- Dependencies on other subtasks
+- Prerequisites (knowledge/tools needed)
+
+Consider including:
+- Setup and preparation steps
+- Quality assurance and testing
+- Documentation requirements
+- Review and approval stages
+- Potential roadblocks
+- Contingency time for issues
+
+Return ONLY a JSON object with the following structure:
+{
+  "analysis": {
+    "totalEstimatedTime": "X-Y hours",
+    "recommendedTeamSize": X,
+    "keySkills": ["skill1", "skill2"]
+  },
+  "subtasks": [
+    {
+      "title": "Subtask title",
+      "description": "Clear description",
+      "estimatedTime": 30,
+      "complexity": "Low/Medium/High",
+      "priority": 1,
+      "dependencies": ["subtask1", "subtask2"],
+      "prerequisites": ["prerequisite1", "prerequisite2"],
+      "challenges": ["challenge1", "challenge2"]
+    }
+  ],
+  "criticalPath": ["step1", "step2"],
+  "risks": ["risk1", "risk2"]
+}`;
 
     const completion = await openai.chat.completions.create({
-      messages: [{ 
-        role: "system", 
-        content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
-      }, {
-        role: "user",
-        content: prompt
-      }],
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional project manager and task analysis expert. Provide detailed, actionable task breakdowns with realistic time estimates and comprehensive analysis."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
       model: "gpt-3.5-turbo",
       response_format: { type: "json_object" },
       temperature: 0.7,
     });
-
-    if (!completion.choices[0]?.message?.content) {
-      throw new Error('No response received from OpenAI');
-    }
 
     const result = JSON.parse(completion.choices[0].message.content);
     
@@ -84,15 +119,24 @@ export const handler = async (event) => {
     // Validate and sanitize subtasks
     const sanitizedSubtasks = result.subtasks.map(subtask => ({
       title: String(subtask.title).trim(),
-      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
+      description: String(subtask.description).trim(),
+      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60),
+      complexity: String(subtask.complexity),
+      priority: Number(subtask.priority),
+      dependencies: Array.isArray(subtask.dependencies) ? subtask.dependencies : [],
+      prerequisites: Array.isArray(subtask.prerequisites) ? subtask.prerequisites : [],
+      challenges: Array.isArray(subtask.challenges) ? subtask.challenges : []
     }));
-
-    console.log('Generated subtasks:', sanitizedSubtasks);
 
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subtasks: sanitizedSubtasks })
+      body: JSON.stringify({
+        analysis: result.analysis,
+        subtasks: sanitizedSubtasks,
+        criticalPath: result.criticalPath,
+        risks: result.risks
+      })
     };
 
   } catch (error) {
