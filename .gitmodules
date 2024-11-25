@@ -1,0 +1,3 @@
+[submodule "TaskeaseStaging"]
+	path = TaskeaseStaging
+	url = https://github.com/Kobaiko/taskease-staging
