@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
+import { PaymentModal } from '../components/PaymentModal';
+import { addFreeCredits, setSubscription } from '../services/creditService';
+import { initiateSubscription } from '../services/payment';
 
 export function Register() {
   const [email, setEmail] = useState('');
@@ -11,6 +14,7 @@ export function Register() {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -24,8 +28,8 @@ export function Register() {
     try {
       setError('');
       setLoading(true);
-      await signUp(email, password, displayName);
-      navigate('/');
+      const user = await signUp(email, password, displayName);
+      setShowPaymentModal(true);
     } catch (err) {
       console.error('Registration error:', err);
       setError('Failed to create an account');
@@ -33,6 +37,42 @@ export function Register() {
       setLoading(false);
     }
   }
+
+  const handleChooseCredits = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No user found');
+      
+      await addFreeCredits(user.uid);
+      navigate('/');
+    } catch (err) {
+      console.error('Error adding credits:', err);
+      setError('Failed to add credits');
+    }
+  };
+
+  const handleChooseSubscription = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No user found');
+
+      const payment = await initiateSubscription(
+        user.uid,
+        email,
+        displayName
+      );
+
+      if (payment.CCode === '0') {
+        await setSubscription(user.uid, true);
+        navigate('/');
+      } else {
+        throw new Error('Payment failed');
+      }
+    } catch (err) {
+      console.error('Subscription error:', err);
+      setError('Failed to process subscription');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -107,25 +147,29 @@ export function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              Sign Up
             </button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
               >
-                Sign in
+                Log In
               </Link>
             </p>
-          </div>
+          </form>
         </div>
       </div>
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onChooseCredits={handleChooseCredits}
+        onChooseSubscription={handleChooseSubscription}
+      />
     </div>
   );
 }

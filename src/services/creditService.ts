@@ -5,6 +5,14 @@ import type { UserCredits } from '../types';
 const CREDITS_COLLECTION = 'credits';
 const INITIAL_CREDITS = 3;
 
+interface UserCredits {
+  userId: string;
+  credits: number;
+  lastUpdated: Date;
+  isSubscribed?: boolean;
+  subscriptionEnds?: Date;
+}
+
 export async function initializeUserCredits(userId: string): Promise<void> {
   const creditRef = doc(db, CREDITS_COLLECTION, userId);
   const creditDoc = await getDoc(creditRef);
@@ -12,23 +20,29 @@ export async function initializeUserCredits(userId: string): Promise<void> {
   if (!creditDoc.exists()) {
     const userCredits: UserCredits = {
       userId,
-      credits: INITIAL_CREDITS,
-      lastUpdated: new Date()
+      credits: 0, // Start with 0 credits until they choose an option
+      lastUpdated: new Date(),
+      isSubscribed: false
     };
     await setDoc(creditRef, userCredits);
   }
 }
 
-export async function getUserCredits(userId: string): Promise<number> {
+export async function getUserCredits(userId: string): Promise<UserCredits> {
   const creditRef = doc(db, CREDITS_COLLECTION, userId);
   const creditDoc = await getDoc(creditRef);
 
   if (!creditDoc.exists()) {
     await initializeUserCredits(userId);
-    return INITIAL_CREDITS;
+    return {
+      userId,
+      credits: 0,
+      lastUpdated: new Date(),
+      isSubscribed: false
+    };
   }
 
-  return creditDoc.data().credits;
+  return creditDoc.data() as UserCredits;
 }
 
 export async function deductCredit(userId: string): Promise<number> {
@@ -39,16 +53,47 @@ export async function deductCredit(userId: string): Promise<number> {
     throw new Error('User credits not found');
   }
 
-  const currentCredits = creditDoc.data().credits;
-  if (currentCredits <= 0) {
+  const userData = creditDoc.data() as UserCredits;
+  
+  // If user is subscribed, don't deduct credits
+  if (userData.isSubscribed && userData.subscriptionEnds && userData.subscriptionEnds > new Date()) {
+    return userData.credits;
+  }
+
+  if (userData.credits <= 0) {
     throw new Error('No credits remaining');
   }
 
-  const newCredits = currentCredits - 1;
+  const newCredits = userData.credits - 1;
   await updateDoc(creditRef, {
     credits: newCredits,
     lastUpdated: new Date()
   });
 
   return newCredits;
+}
+
+export async function addFreeCredits(userId: string): Promise<void> {
+  const creditRef = doc(db, CREDITS_COLLECTION, userId);
+  await updateDoc(creditRef, {
+    credits: INITIAL_CREDITS,
+    lastUpdated: new Date()
+  });
+}
+
+export async function setSubscription(userId: string, isSubscribed: boolean): Promise<void> {
+  const creditRef = doc(db, CREDITS_COLLECTION, userId);
+  const subscriptionEnds = new Date();
+  subscriptionEnds.setMonth(subscriptionEnds.getMonth() + 1); // 1 month subscription
+
+  await updateDoc(creditRef, {
+    isSubscribed,
+    subscriptionEnds,
+    lastUpdated: new Date()
+  });
+}
+
+export async function checkSubscriptionStatus(userId: string): Promise<boolean> {
+  const credits = await getUserCredits(userId);
+  return !!(credits.isSubscribed && credits.subscriptionEnds && credits.subscriptionEnds > new Date());
 }
