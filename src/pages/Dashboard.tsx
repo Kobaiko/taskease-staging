@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserTasks, createTask, updateTask, deleteTask, updateSubtaskStatus } from '../services/taskService';
 import { saveUserTheme, getUserTheme } from '../services/userService';
 import { getUserCredits } from '../services/creditService';
-import type { Task, SubTask } from '../types';
+import type { Task, SubTask, UserCredits } from '../types';
 
 export function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -43,7 +43,7 @@ export function Dashboard() {
       );
 
       setTasks(sortedTasks);
-      setCredits(userCredits);
+      setCredits(userCredits.credits);
     } catch (err) {
       console.error('Error loading user data:', err);
       setError('Failed to load tasks');
