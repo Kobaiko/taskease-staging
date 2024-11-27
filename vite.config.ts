@@ -15,6 +15,15 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      external: ['framer-motion', 'canvas-confetti'],
+      output: {
+        globals: {
+          'framer-motion': 'framerMotion',
+          'canvas-confetti': 'canvasConfetti'
+        }
+      }
+    }
   }
 });

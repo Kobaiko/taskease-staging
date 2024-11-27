@@ -11,12 +11,13 @@
     "start": "node server/index.js"
   },
   "dependencies": {
-    "canvas-confetti": "^1.9.2",
+    "canvas-confetti": "^1.9.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
     "firebase": "^10.8.0",
     "firebase-admin": "^13.0.0",
+    "framer-motion": "^11.12.0",
     "lucide-react": "^0.344.0",
     "openai": "^4.28.0",
     "react": "^18.3.1",
