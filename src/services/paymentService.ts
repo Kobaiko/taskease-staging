@@ -24,6 +24,38 @@ interface PaymentResponse {
   errMsg?: string;
 }
 
+async function getPaymentSignature(params: Record<string, string>): Promise<string | null> {
+  try {
+    const signParams = {
+      ...params,
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: Date.now().toString(16), // Unique key for each request
+    };
+
+    // Remove parameters that shouldn't be part of signature
+    delete signParams.PassP;
+    delete signParams.Sign;
+    delete signParams.signature;
+
+    const signUrlParams = new URLSearchParams(signParams);
+    const signUrl = `${YAAD_API_URL}?${signUrlParams.toString()}`;
+    
+    console.log('Signature URL:', signUrl); // For debugging
+
+    const response = await fetch(signUrl);
+    const signatureText = await response.text();
+    
+    // Extract signature from the response
+    const signatureMatch = signatureText.match(/&signature=([^&]+)$/);
+    return signatureMatch ? signatureMatch[1] : null;
+
+  } catch (error) {
+    console.error('Error getting payment signature:', error);
+    return null;
+  }
+}
+
 export async function processPayment(
   userId: string,
   amount: number,
@@ -53,10 +85,14 @@ export async function processPayment(
       MoreData: 'True',
       PageLang: 'ENG',
       tmp: '1',
-      J5: 'True', // Enable JSON response
-      sendemail: 'True', // Send confirmation email
-      Tash: '1', // Default to single payment
-      Sign: 'True' // Enable signature verification
+      J5: 'True',
+      sendemail: 'True',
+      Sign: 'True',
+      UserId: userId,
+      ClientName: 'TaskEase User',
+      ClientLName: userId,
+      email: 'user@taskease.com', // We should get this from user profile
+      phone: '0000000000' // We should get this from user profile
     };
 
     // Add subscription parameters if needed
@@ -69,7 +105,16 @@ export async function processPayment(
       });
     }
 
-    // Build payment URL
+    // Get signature from API
+    const signature = await getPaymentSignature(params);
+    if (!signature) {
+      throw new Error('Failed to get payment signature');
+    }
+
+    // Add signature to params
+    params.signature = signature;
+
+    // Build final payment URL
     const urlParams = new URLSearchParams(params);
     const paymentUrl = `${YAAD_API_URL}?${urlParams.toString()}`;
     
