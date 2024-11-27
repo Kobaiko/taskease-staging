@@ -245,6 +245,7 @@ export function Dashboard() {
         {isPaymentModalOpen && (
           <PaymentModal
             isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
             onChooseCredits={() => {
               setIsPaymentModalOpen(false);
               loadUserData();
@@ -262,6 +263,7 @@ export function Dashboard() {
           onSubmit={handleCreateTask}
           credits={credits}
           onCreditsUpdate={loadUserData}
+          isSubscribed={false}
         />
 
         <ProfilePopup

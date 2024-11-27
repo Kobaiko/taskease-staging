@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
-const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
+const YAAD_API_URL = 'https://icom.yaad.net/p/';
 
 interface PaymentResponse {
   Id: string;
@@ -35,35 +35,36 @@ export async function processPayment(
     const apiKey = import.meta.env.VITE_YAAD_API_KEY;
     const passp = import.meta.env.VITE_YAAD_PASSP;
 
-    // Step 1: Get API signature
-    const signParams = new URLSearchParams({
-      action: 'APISign',
-      What: 'SIGN',
-      KEY: apiKey,
-      PassP: passp,
+    // Convert USD to ILS (1 USD ≈ 3.7 ILS)
+    const amountInILS = Math.round(amount * 3.7 * 100);
+
+    const params = new URLSearchParams({
       Masof: masof,
-      Amount: (amount * 3.7).toFixed(2), // Convert USD to ILS
-      Coin: '1', // ILS
-      UTF8: 'True',
-      UTF8out: 'True',
+      PassP: passp,
+      Amount: amountInILS.toString(),
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
-      Sign: 'True',
-      MoreData: 'True',
+      UTF8: 'True',
       UserId: userId,
-      sendemail: 'True',
+      Tash: isSubscription ? '1' : undefined,
+      Coin: '1', // ILS
       PageLang: 'ENG',
-      tmp: '1',
       ...(isSubscription && {
-        HK: 'True',
-        freq: isYearly ? '12' : '1', // 12 months for yearly, 1 for monthly
-        Tash: '999', // Unlimited payments for subscription
-        OnlyOnApprove: 'True'
+        HK_TYPE: '2', // Subscription
+        HK_TIMES: isYearly ? '12' : '1', // Number of payments
+        J5: 'TRUE', // Enable subscription
       })
     });
 
-    const paymentUrl = `${YAAD_API_URL}?${signParams.toString()}`;
+    // Remove undefined values
+    Array.from(params.entries()).forEach(([key, value]) => {
+      if (value === 'undefined') {
+        params.delete(key);
+      }
+    });
+
+    const paymentUrl = `${YAAD_API_URL}?${params.toString()}`;
     return paymentUrl;
 
   } catch (error) {
@@ -76,8 +77,6 @@ export async function verifyPayment(paymentResponse: PaymentResponse, userId: st
   try {
     const { CCode } = paymentResponse;
 
-    // CCode 0 means successful payment
-    // CCode 902 might indicate a cancelled or failed payment
     if (CCode === '0') {
       // Payment successful
       const userRef = doc(db, 'users', userId);

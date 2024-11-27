@@ -7,6 +7,8 @@ import { CreditsExhaustedModal } from './CreditsExhaustedModal';
 import { useAuth } from '../contexts/AuthContext';
 import { deductCredit } from '../services/creditService';
 import { NumberInput } from './NumberInput';
+import { Modal } from './Modal';
+import { PaymentModalContent } from './PaymentModalContent';
 
 interface NewTaskModalProps {
   isOpen: boolean;
@@ -14,9 +16,10 @@ interface NewTaskModalProps {
   onSubmit: (title: string, description: string, subTasks: SubTask[]) => void;
   credits: number;
   onCreditsUpdate: () => void;
+  isSubscribed: boolean;
 }
 
-export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpdate }: NewTaskModalProps) {
+export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpdate, isSubscribed }: NewTaskModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
@@ -25,7 +28,9 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
   const [showConfirm, setShowConfirm] = useState(false);
   const [showAddManual, setShowAddManual] = useState(false);
   const [showCreditsExhausted, setShowCreditsExhausted] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { currentUser } = useAuth();
 
   const handleGenerateSubtasks = async () => {
@@ -75,8 +80,24 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (title && description && subTasks.length > 0) {
-      onSubmit(title, description, subTasks);
+    setError('');
+
+    if (credits < 1 && !isSubscribed) {
+      setShowPaymentModal(true);
+      return;
+    }
+
+    if (!title.trim()) {
+      setError('Please enter a task title');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await onSubmit(title, description, subTasks.filter(st => st.title.trim()));
+
+      // Reset form
       setTitle('');
       setDescription('');
       setSubTasks([]);
@@ -87,6 +108,11 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
       } else {
         onClose();
       }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      setError('Failed to create task. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -260,10 +286,10 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
                 </button>
                 <button
                   type="submit"
-                  disabled={!title || !description || subTasks.length === 0}
+                  disabled={!title || !description || subTasks.length === 0 || isLoading}
                   className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Task
+                  {isLoading ? 'Creating...' : 'Create Task'}
                 </button>
               </div>
             </form>
@@ -285,6 +311,18 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, credits, onCreditsUpda
         isOpen={showCreditsExhausted}
         onClose={handleCreditsExhaustedClose}
       />
+
+      {showPaymentModal && (
+        <Modal onClose={() => setShowPaymentModal(false)}>
+          <PaymentModalContent
+            onClose={() => setShowPaymentModal(false)}
+            onChooseSubscription={async () => {
+              setShowPaymentModal(false);
+              onCreditsUpdate();
+            }}
+          />
+        </Modal>
+      )}
     </>
   );
 }
