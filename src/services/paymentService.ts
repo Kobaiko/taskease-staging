@@ -1,6 +1,5 @@
 import { db } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import crypto from 'crypto';
 
 const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 
@@ -25,32 +24,6 @@ interface PaymentResponse {
   errMsg?: string;
 }
 
-interface CustomerDetails {
-  info: string;
-  name?: string;
-  email?: string;
-}
-
-function buildRequest(params: Record<string, string>, apiKey: string): Record<string, string> {
-  const baseParams = {
-    action: 'APISign',
-    What: 'SIGN',
-    KEY: apiKey
-  };
-  
-  return { ...baseParams, ...params };
-}
-
-function signRequest(params: Record<string, string>, apiKey: string): Record<string, string> {
-  const signParams = buildRequest(params, apiKey);
-  const signature = crypto
-    .createHash('sha256')
-    .update(Object.values(signParams).join(''))
-    .digest('hex');
-  
-  return { ...params, signature };
-}
-
 export async function processPayment(
   userId: string,
   amount: number,
@@ -60,7 +33,6 @@ export async function processPayment(
   try {
     const masof = import.meta.env.VITE_YAAD_MASOF;
     const passp = import.meta.env.VITE_YAAD_PASSP;
-    const apiKey = import.meta.env.VITE_YAAD_API_KEY;
 
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
@@ -81,17 +53,15 @@ export async function processPayment(
     // Add subscription parameters if needed
     if (isSubscription) {
       Object.assign(params, {
-        HK: 'True',
-        Tash: isYearly ? '12' : '1',
-        freq: 'monthly'
+        Tash: '1',
+        HK_TYPE: '2', // Subscription
+        HK_TIMES: isYearly ? '12' : '1', // Number of payments
+        J5: 'TRUE' // Enable subscription
       });
     }
 
-    // Sign the request
-    const signedParams = signRequest(params, apiKey);
-
-    // Build the final URL
-    const urlParams = new URLSearchParams(signedParams);
+    // Build the URL
+    const urlParams = new URLSearchParams(params);
     const paymentUrl = `${YAAD_API_URL}?${urlParams.toString()}`;
     
     console.log('Payment URL:', paymentUrl); // For debugging
