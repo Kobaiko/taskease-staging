@@ -23,15 +23,11 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
-      external: ['framer-motion'],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
           firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          ui: ['framer-motion', 'lucide-react', 'react-aria-components'],
-        },
-        globals: {
-          'framer-motion': 'framerMotion'
+          ui: ['lucide-react', 'react-aria-components']
         }
       }
     },
