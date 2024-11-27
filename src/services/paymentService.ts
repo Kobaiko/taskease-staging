@@ -24,23 +24,6 @@ interface PaymentResponse {
   errMsg?: string;
 }
 
-async function getSignature(params: Record<string, string>): Promise<string> {
-  const signParams = {
-    ...params,
-    action: 'APISign',
-    What: 'SIGN',
-    KEY: import.meta.env.VITE_YAAD_KEY
-  };
-
-  const queryString = new URLSearchParams(signParams).toString();
-  const response = await fetch(`${YAAD_API_URL}?${queryString}`);
-  const signedParams = await response.text();
-  
-  // Extract signature from the response
-  const signatureMatch = signedParams.match(/&signature=([^&]+)$/);
-  return signatureMatch ? signatureMatch[1] : '';
-}
-
 export async function processPayment(
   userId: string,
   amount: number,
@@ -56,6 +39,7 @@ export async function processPayment(
 
     // Basic payment parameters
     const params: Record<string, string> = {
+      action: 'pay',
       Masof: masof,
       PassP: passp,
       Amount: amountInILS.toString(),
@@ -70,7 +54,6 @@ export async function processPayment(
       Coin: '1', // 1 = ILS
       tmp: '11', // Modern template
       PageLang: 'ENG',
-      Sign: 'True',
       MoreData: 'True'
     };
 
@@ -83,17 +66,8 @@ export async function processPayment(
       });
     }
 
-    // Get signature
-    const signature = await getSignature(params);
-
-    // Build final payment URL with signature
-    const finalParams = {
-      ...params,
-      action: 'pay',
-      signature
-    };
-
-    const urlParams = new URLSearchParams(finalParams);
+    // Build payment URL
+    const urlParams = new URLSearchParams(params);
     const paymentUrl = `${YAAD_API_URL}?${urlParams.toString()}`;
     
     console.log('Payment URL:', paymentUrl); // For debugging
