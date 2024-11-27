@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -13,9 +14,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Enable CORS for development
+// Enable CORS for development and staging
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://staging.gettaskease.com'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -25,6 +26,45 @@ app.use(express.static(join(__dirname, 'dist')));
 
 const openai = new OpenAI({
   apiKey: process.env.VITE_OPENAI_API_KEY
+});
+
+app.post('/api/payment/sign', async (req, res) => {
+  try {
+    const params = {
+      ...req.body,
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: Date.now().toString(16)
+    };
+
+    // Remove sensitive data
+    delete params.PassP;
+    delete params.Sign;
+    delete params.signature;
+
+    // Build URL
+    const urlParams = new URLSearchParams(params);
+    const signUrl = `https://pay.hyp.co.il/p/?${urlParams.toString()}`;
+
+    console.log('Calling Yaad API:', signUrl); // For debugging
+
+    // Call Yaad API
+    const response = await fetch(signUrl);
+    const signatureText = await response.text();
+
+    console.log('Yaad Response:', signatureText); // For debugging
+
+    // Extract signature
+    const signatureMatch = signatureText.match(/&signature=([^&]+)$/);
+    if (!signatureMatch) {
+      throw new Error('No signature in response');
+    }
+
+    res.json({ signature: signatureMatch[1] });
+  } catch (error) {
+    console.error('Error getting signature:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {
