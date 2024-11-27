@@ -188,14 +188,6 @@ export function Dashboard() {
                   credits={credits} 
                   onUpgradeClick={() => setIsPaymentModalOpen(true)}
                 />
-                {credits < 2 && (
-                  <button
-                    onClick={() => setIsPaymentModalOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                  >
-                    Upgrade
-                  </button>
-                )}
                 <button
                   onClick={toggleTheme}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg transition-colors duration-200"

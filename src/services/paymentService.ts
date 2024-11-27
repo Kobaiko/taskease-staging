@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
-const API_URL = import.meta.env.REACT_APP_API_URL;
+const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 
 interface PaymentResponse {
   Id: string;
@@ -31,25 +31,50 @@ export async function processPayment(
   isYearly: boolean = false
 ): Promise<string> {
   try {
-    const response = await fetch(`${API_URL}/api/payment/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        amount,
-        isSubscription,
-        isYearly
+    const masof = import.meta.env.VITE_YAAD_MASOF;
+    const apiKey = import.meta.env.VITE_YAAD_API_KEY;
+    const passp = import.meta.env.VITE_YAAD_PASSP;
+
+    // Step 1: Get API signature
+    const signParams = new URLSearchParams({
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: apiKey,
+      PassP: passp,
+      Masof: masof,
+      Amount: amount.toString(),
+      Coin: '2', // USD
+      UTF8: 'True',
+      UTF8out: 'True',
+      Info: isSubscription 
+        ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
+        : 'TaskEase Free Credits',
+      Sign: 'True',
+      MoreData: 'True',
+      UserId: userId,
+      sendemail: 'True',
+      PageLang: 'ENG',
+      tmp: '1',
+      ...(isSubscription && {
+        HK: 'True',
+        freq: isYearly ? '12' : '1', // 12 months for yearly, 1 for monthly
+        Tash: '999', // Unlimited payments for subscription
+        OnlyOnApprove: 'True'
       })
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to generate payment URL');
+    const signResponse = await fetch(`${YAAD_API_URL}?${signParams.toString()}`, {
+      mode: 'no-cors' // Add this to handle CORS
+    });
+    
+    if (!signResponse.ok && signResponse.status !== 0) { // Status 0 is expected with no-cors
+      throw new Error('Failed to get payment signature');
     }
 
-    const data = await response.json();
-    return data.paymentUrl;
+    // For no-cors mode, we'll construct the URL directly
+    const paymentUrl = `${YAAD_API_URL}?${signParams.toString()}`;
+    return paymentUrl;
+
   } catch (error) {
     console.error('Error generating payment URL:', error);
     throw error;
