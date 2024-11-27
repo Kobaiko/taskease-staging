@@ -6,7 +6,7 @@ interface CreditDisplayProps {
   onUpgradeClick?: () => void;
 }
 
-export default function CreditDisplay({ credits, onUpgradeClick }: CreditDisplayProps) {
+export const CreditDisplay = ({ credits, onUpgradeClick }: CreditDisplayProps) => {
   const isLowCredits = credits < 2;
 
   return (
@@ -31,4 +31,4 @@ export default function CreditDisplay({ credits, onUpgradeClick }: CreditDisplay
       )}
     </div>
   );
-}
+};
