@@ -26,29 +26,21 @@ interface PaymentResponse {
 
 async function getPaymentSignature(params: Record<string, string>): Promise<string | null> {
   try {
-    const signParams = {
-      ...params,
-      action: 'APISign',
-      What: 'SIGN',
-      KEY: Date.now().toString(16), // Unique key for each request
-    };
+    // Instead of calling Yaad directly, we'll use our backend proxy
+    const response = await fetch('https://api.staging.gettaskease.com/api/payment/sign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params)
+    });
 
-    // Remove parameters that shouldn't be part of signature
-    delete signParams.PassP;
-    delete signParams.Sign;
-    delete signParams.signature;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-    const signUrlParams = new URLSearchParams(signParams);
-    const signUrl = `${YAAD_API_URL}?${signUrlParams.toString()}`;
-    
-    console.log('Signature URL:', signUrl); // For debugging
-
-    const response = await fetch(signUrl);
-    const signatureText = await response.text();
-    
-    // Extract signature from the response
-    const signatureMatch = signatureText.match(/&signature=([^&]+)$/);
-    return signatureMatch ? signatureMatch[1] : null;
+    const data = await response.json();
+    return data.signature;
 
   } catch (error) {
     console.error('Error getting payment signature:', error);
@@ -105,7 +97,7 @@ export async function processPayment(
       });
     }
 
-    // Get signature from API
+    // Get signature from our backend
     const signature = await getPaymentSignature(params);
     if (!signature) {
       throw new Error('Failed to get payment signature');
