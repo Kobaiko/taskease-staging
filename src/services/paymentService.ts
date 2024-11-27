@@ -33,6 +33,7 @@ export async function processPayment(
   try {
     const masof = import.meta.env.VITE_YAAD_MASOF;
     const passp = import.meta.env.VITE_YAAD_PASSP;
+    const apiKey = import.meta.env.VITE_YAAD_API_KEY;
 
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
@@ -41,6 +42,7 @@ export async function processPayment(
       action: 'pay',
       Masof: masof,
       PassP: passp,
+      KEY: apiKey,
       Amount: amountInILS.toString(),
       Coin: '1', // ILS
       Info: isSubscription 
@@ -70,6 +72,7 @@ export async function processPayment(
     });
 
     const paymentUrl = `${YAAD_API_URL}?${params.toString()}`;
+    console.log('Payment URL:', paymentUrl); // For debugging
     return paymentUrl;
 
   } catch (error) {
