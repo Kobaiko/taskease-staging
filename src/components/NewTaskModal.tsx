@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { deductCredit } from '../services/creditService';
 import { NumberInput } from './NumberInput';
 import { Modal } from './Modal';
-import { PaymentModalContent } from './PaymentModalContent';
+import PaymentModalContent from './PaymentModalContent';
 
 interface NewTaskModalProps {
   isOpen: boolean;
