@@ -6,6 +6,7 @@ import { Logo } from '../components/Logo';
 import { PaymentModal } from '../components/PaymentModal';
 import { addFreeCredits, setSubscription } from '../services/creditService';
 import { initiateSubscription } from '../services/payment';
+import { auth } from '../services/firebase';
 
 export function Register() {
   const [email, setEmail] = useState('');
