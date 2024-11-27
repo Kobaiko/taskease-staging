@@ -47,16 +47,17 @@ export async function processPayment(
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
       UTF8: 'True',
-      UTF8out: 'True'
+      UTF8out: 'True',
+      ClientName: userId, // Add client name
+      Coin: '1' // Add currency
     };
 
     // Add subscription parameters if needed
     if (isSubscription) {
       Object.assign(params, {
-        Tash: '1',
-        HK_TYPE: '2', // Subscription
-        HK_TIMES: isYearly ? '12' : '1', // Number of payments
-        J5: 'TRUE' // Enable subscription
+        HK: 'True', // Changed from HK_TYPE
+        freq: isYearly ? 'yearly' : 'monthly',
+        Tash: isYearly ? '12' : '1' // Number of payments
       });
     }
 
