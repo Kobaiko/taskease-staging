@@ -37,36 +37,41 @@ export async function processPayment(
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
 
-    // Basic payment parameters
+    // Basic payment parameters exactly matching documentation example
     const params: Record<string, string> = {
       action: 'pay',
       Masof: masof,
       PassP: passp,
       Amount: amountInILS.toString(),
+      Order: Date.now().toString(),
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
-      Order: Date.now().toString(), // Unique order ID
       UTF8: 'True',
       UTF8out: 'True',
-      UserId: userId,
-      ClientName: userId,
-      Coin: '1', // 1 = ILS
-      tmp: '11', // Modern template
-      PageLang: 'ENG',
+      UserId: '000000000', // Test ID from documentation
+      ClientName: 'Israel',
+      ClientLName: 'Israeli',
+      street: 'levanon 3',
+      city: 'netanya',
+      zip: '42361',
+      phone: '098610338',
+      cell: '050555555555',
+      email: 'test@yaad.net',
+      Coin: '1',
       MoreData: 'True',
-      sendemail: 'True', // Send confirmation email
-      FixTash: 'True', // Fix number of payments
-      pageTimeOut: 'True' // 20-minute timeout
+      PageLang: 'ENG',
+      tmp: '1'
     };
 
     // Add subscription parameters if needed
     if (isSubscription) {
       Object.assign(params, {
-        Tash: isYearly ? '12' : '1', // Number of payments
-        HK: 'True', // Enable subscription
-        freq: isYearly ? 'yearly' : 'monthly', // Payment frequency
-        OnlyOnApprove: 'True' // Only start subscription if first payment approved
+        Tash: isYearly ? '12' : '1',
+        FixTash: 'True',
+        HK: 'True',
+        freq: isYearly ? 'yearly' : 'monthly',
+        OnlyOnApprove: 'True'
       });
     }
 
