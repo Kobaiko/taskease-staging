@@ -32,6 +32,7 @@ export async function processPayment(
 ): Promise<string> {
   try {
     const masof = import.meta.env.VITE_YAAD_MASOF;
+    const passp = import.meta.env.VITE_YAAD_PASSP;
 
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
@@ -39,6 +40,7 @@ export async function processPayment(
     const params = new URLSearchParams({
       action: 'pay',
       Masof: masof,
+      PassP: passp,
       Amount: amountInILS.toString(),
       Coin: '1', // ILS
       Info: isSubscription 
