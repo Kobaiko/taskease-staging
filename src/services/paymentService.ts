@@ -32,33 +32,28 @@ export async function processPayment(
 ): Promise<string> {
   try {
     const masof = import.meta.env.VITE_YAAD_MASOF;
-    const apiKey = import.meta.env.VITE_YAAD_API_KEY;
-    const passp = import.meta.env.VITE_YAAD_PASSP;
 
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
 
     const params = new URLSearchParams({
-      action: 'APISign',
-      What: 'SIGN',
-      KEY: apiKey,
-      PassP: passp,
+      action: 'pay',
       Masof: masof,
       Amount: amountInILS.toString(),
+      Coin: '1', // ILS
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
       UTF8: 'True',
       UTF8out: 'True',
       UserId: userId,
-      Tash: isSubscription ? '1' : undefined,
-      Coin: '1', // ILS
       PageLang: 'ENG',
       Sign: 'True',
       MoreData: 'True',
       sendemail: 'True',
       tmp: Date.now().toString(),
       ...(isSubscription && {
+        Tash: '1',
         HK_TYPE: '2', // Subscription
         HK_TIMES: isYearly ? '12' : '1', // Number of payments
         J5: 'TRUE', // Enable subscription
