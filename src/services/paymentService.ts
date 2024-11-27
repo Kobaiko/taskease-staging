@@ -24,6 +24,28 @@ interface PaymentResponse {
   errMsg?: string;
 }
 
+async function getSignature(params: URLSearchParams): Promise<string | null> {
+  try {
+    const signParams = new URLSearchParams({
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: params.get('KEY') || '',
+      PassP: params.get('PassP') || '',
+      Amount: params.get('Amount') || '',
+      Coin: params.get('Coin') || '',
+      Masof: params.get('Masof') || '',
+    });
+
+    const signUrl = `${YAAD_API_URL}?${signParams.toString()}`;
+    const response = await fetch(signUrl);
+    const data = await response.text();
+    return data.trim();
+  } catch (error) {
+    console.error('Error getting signature:', error);
+    return null;
+  }
+}
+
 export async function processPayment(
   userId: string,
   amount: number,
@@ -39,8 +61,6 @@ export async function processPayment(
     const amountInILS = Math.round(amount * 3.7 * 100);
 
     const params = new URLSearchParams({
-      action: 'pay',
-      What: 'SIGN',
       Masof: masof,
       PassP: passp,
       KEY: apiKey,
@@ -53,7 +73,6 @@ export async function processPayment(
       UTF8out: 'True',
       UserId: userId,
       PageLang: 'ENG',
-      sign: 'true', // lowercase
       MoreData: 'True',
       sendemail: 'True',
       REFURL: 'https://staging.gettaskease.com',
@@ -65,6 +84,20 @@ export async function processPayment(
         J5: 'TRUE', // Enable subscription
       })
     });
+
+    // Get signature first
+    const signature = await getSignature(params);
+    if (!signature) {
+      throw new Error('Failed to get payment signature');
+    }
+
+    // Add signature and payment action
+    params.set('action', 'pay');
+    params.set('signature', signature);
+
+    // Remove API credentials from payment URL
+    params.delete('KEY');
+    params.delete('PassP');
 
     // Remove undefined values
     Array.from(params.entries()).forEach(([key, value]) => {
