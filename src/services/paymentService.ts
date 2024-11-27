@@ -1,7 +1,8 @@
 import { db } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import crypto from 'crypto';
 
-const YAAD_API_URL = 'https://icom.yaad.net/p/';
+const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 
 interface PaymentResponse {
   Id: string;
@@ -24,26 +25,30 @@ interface PaymentResponse {
   errMsg?: string;
 }
 
-async function getSignature(params: URLSearchParams): Promise<string | null> {
-  try {
-    const signParams = new URLSearchParams({
-      action: 'APISign',
-      What: 'SIGN',
-      KEY: params.get('KEY') || '',
-      PassP: params.get('PassP') || '',
-      Amount: params.get('Amount') || '',
-      Coin: params.get('Coin') || '',
-      Masof: params.get('Masof') || '',
-    });
+interface CustomerDetails {
+  info: string;
+  name?: string;
+  email?: string;
+}
 
-    const signUrl = `${YAAD_API_URL}?${signParams.toString()}`;
-    const response = await fetch(signUrl);
-    const data = await response.text();
-    return data.trim();
-  } catch (error) {
-    console.error('Error getting signature:', error);
-    return null;
-  }
+function buildRequest(params: Record<string, string>, apiKey: string): Record<string, string> {
+  const baseParams = {
+    action: 'APISign',
+    What: 'SIGN',
+    KEY: apiKey
+  };
+  
+  return { ...baseParams, ...params };
+}
+
+function signRequest(params: Record<string, string>, apiKey: string): Record<string, string> {
+  const signParams = buildRequest(params, apiKey);
+  const signature = crypto
+    .createHash('sha256')
+    .update(Object.values(signParams).join(''))
+    .digest('hex');
+  
+  return { ...params, signature };
 }
 
 export async function processPayment(
@@ -60,53 +65,35 @@ export async function processPayment(
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100);
 
-    const params = new URLSearchParams({
+    // Basic payment parameters
+    const params: Record<string, string> = {
+      action: 'pay',
       Masof: masof,
       PassP: passp,
-      KEY: apiKey,
       Amount: amountInILS.toString(),
-      Coin: '1', // ILS
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
       UTF8: 'True',
-      UTF8out: 'True',
-      UserId: userId,
-      PageLang: 'ENG',
-      MoreData: 'True',
-      sendemail: 'True',
-      REFURL: 'https://staging.gettaskease.com',
-      tmp: Date.now().toString(),
-      ...(isSubscription && {
-        Tash: '1',
-        HK_TYPE: '2', // Subscription
-        HK_TIMES: isYearly ? '12' : '1', // Number of payments
-        J5: 'TRUE', // Enable subscription
-      })
-    });
+      UTF8out: 'True'
+    };
 
-    // Get signature first
-    const signature = await getSignature(params);
-    if (!signature) {
-      throw new Error('Failed to get payment signature');
+    // Add subscription parameters if needed
+    if (isSubscription) {
+      Object.assign(params, {
+        HK: 'True',
+        Tash: isYearly ? '12' : '1',
+        freq: 'monthly'
+      });
     }
 
-    // Add signature and payment action
-    params.set('action', 'pay');
-    params.set('signature', signature);
+    // Sign the request
+    const signedParams = signRequest(params, apiKey);
 
-    // Remove API credentials from payment URL
-    params.delete('KEY');
-    params.delete('PassP');
-
-    // Remove undefined values
-    Array.from(params.entries()).forEach(([key, value]) => {
-      if (value === 'undefined') {
-        params.delete(key);
-      }
-    });
-
-    const paymentUrl = `${YAAD_API_URL}?${params.toString()}`;
+    // Build the final URL
+    const urlParams = new URLSearchParams(signedParams);
+    const paymentUrl = `${YAAD_API_URL}?${urlParams.toString()}`;
+    
     console.log('Payment URL:', paymentUrl); // For debugging
     return paymentUrl;
 
@@ -120,8 +107,8 @@ export async function verifyPayment(paymentResponse: PaymentResponse, userId: st
   try {
     const { CCode } = paymentResponse;
 
-    if (CCode === '0') {
-      // Payment successful
+    // According to docs, 0 is success and 800 is postponed (both valid)
+    if (CCode === '0' || CCode === '800') {
       const userRef = doc(db, 'users', userId);
       
       await updateDoc(userRef, {
@@ -130,14 +117,37 @@ export async function verifyPayment(paymentResponse: PaymentResponse, userId: st
         lastUpdated: new Date()
       });
 
+      // Log successful transaction
+      console.log('Transaction successful:', {
+        transaction_id: paymentResponse.Id,
+        amount: paymentResponse.Amount,
+        status: paymentResponse.CCode,
+        timestamp: new Date().toISOString()
+      });
+
       return true;
     }
 
+    // Log error for debugging
+    console.error('Payment error:', getErrorMessage(CCode));
     return false;
+
   } catch (error) {
     console.error('Error verifying payment:', error);
     return false;
   }
+}
+
+function getErrorMessage(code: string): string {
+  const errorCodes: Record<string, string> = {
+    '0': 'Success',
+    '800': 'Postponed transaction',
+    '901': 'No permission',
+    '902': 'Authentication error',
+    '999': 'Communication error'
+  };
+
+  return errorCodes[code] || `Unknown error code: ${code}`;
 }
 
 export async function handleLowCredits(userId: string): Promise<void> {
