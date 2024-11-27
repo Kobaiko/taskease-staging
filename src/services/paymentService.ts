@@ -54,15 +54,19 @@ export async function processPayment(
       Coin: '1', // 1 = ILS
       tmp: '11', // Modern template
       PageLang: 'ENG',
-      MoreData: 'True'
+      MoreData: 'True',
+      sendemail: 'True', // Send confirmation email
+      FixTash: 'True', // Fix number of payments
+      pageTimeOut: 'True' // 20-minute timeout
     };
 
     // Add subscription parameters if needed
     if (isSubscription) {
       Object.assign(params, {
-        Tash: isYearly ? '12' : '1',
-        HK: 'True',
-        freq: isYearly ? 'yearly' : 'monthly'
+        Tash: isYearly ? '12' : '1', // Number of payments
+        HK: 'True', // Enable subscription
+        freq: isYearly ? 'yearly' : 'monthly', // Payment frequency
+        OnlyOnApprove: 'True' // Only start subscription if first payment approved
       });
     }
 
