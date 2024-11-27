@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { m as motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { processPayment } from '../services/paymentService';
 import { useAuth } from '../contexts/AuthContext';
+import { processPayment } from '../services/paymentService';
 
 interface PaymentModalContentProps {
   onClose: () => void;
@@ -22,7 +21,11 @@ export default function PaymentModalContent({
     setLoading(true);
     try {
       const amount = isYearly ? 80 : 8;
+      
+      // Update subscription status before redirecting
+      await onChooseSubscription();
         
+      // Generate payment URL
       const paymentUrl = await processPayment(
         currentUser.uid, 
         amount, 
@@ -30,14 +33,13 @@ export default function PaymentModalContent({
         isYearly
       );
       
-      // Update subscription status locally before redirecting
-      await onChooseSubscription();
+      // Open payment URL in new window/tab
+      window.open(paymentUrl, '_blank');
       
-      // Redirect to payment page
-      window.location.href = paymentUrl;
+      // Close modal after opening payment URL
+      onClose();
     } catch (error) {
       console.error('Payment error:', error);
-    } finally {
       setLoading(false);
     }
   };
