@@ -42,13 +42,13 @@ export async function processPayment(
       KEY: apiKey,
       PassP: passp,
       Masof: masof,
-      Amount: amount.toString(),
-      Coin: '2', // USD
+      Amount: (amount * 3.7).toFixed(2), // Convert USD to ILS
+      Coin: '1', // ILS
       UTF8: 'True',
       UTF8out: 'True',
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
-        : 'TaskEase Free Credits',
+        : 'TaskEase Credits',
       Sign: 'True',
       MoreData: 'True',
       UserId: userId,
@@ -63,15 +63,6 @@ export async function processPayment(
       })
     });
 
-    const signResponse = await fetch(`${YAAD_API_URL}?${signParams.toString()}`, {
-      mode: 'no-cors' // Add this to handle CORS
-    });
-    
-    if (!signResponse.ok && signResponse.status !== 0) { // Status 0 is expected with no-cors
-      throw new Error('Failed to get payment signature');
-    }
-
-    // For no-cors mode, we'll construct the URL directly
     const paymentUrl = `${YAAD_API_URL}?${signParams.toString()}`;
     return paymentUrl;
 
@@ -85,16 +76,16 @@ export async function verifyPayment(paymentResponse: PaymentResponse, userId: st
   try {
     const { CCode } = paymentResponse;
 
+    // CCode 0 means successful payment
+    // CCode 902 might indicate a cancelled or failed payment
     if (CCode === '0') {
       // Payment successful
       const userRef = doc(db, 'users', userId);
       
-      // For free tier or failed payments, give 3 credits
       await updateDoc(userRef, {
-        credits: 3,
-        lastUpdated: new Date(),
         isSubscribed: true,
-        subscriptionEnds: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+        subscriptionEnds: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        lastUpdated: new Date()
       });
 
       return true;
