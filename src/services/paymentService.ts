@@ -40,6 +40,7 @@ export async function processPayment(
 
     const params = new URLSearchParams({
       action: 'pay',
+      What: 'SIGN',
       Masof: masof,
       PassP: passp,
       KEY: apiKey,
@@ -52,9 +53,10 @@ export async function processPayment(
       UTF8out: 'True',
       UserId: userId,
       PageLang: 'ENG',
-      Sign: 'True',
+      sign: 'true', // lowercase
       MoreData: 'True',
       sendemail: 'True',
+      REFURL: 'https://staging.gettaskease.com',
       tmp: Date.now().toString(),
       ...(isSubscription && {
         Tash: '1',
