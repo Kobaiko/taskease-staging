@@ -21,7 +21,6 @@ export default function PaymentModalContent({
     
     setLoading(true);
     try {
-      // Convert USD to ILS (approximate rate 1 USD = 3.7 ILS)
       const amount = isYearly ? 80 : 8;
         
       const paymentUrl = await processPayment(
@@ -44,17 +43,13 @@ export default function PaymentModalContent({
   };
 
   return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.9, opacity: 0 }}
-      className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"
-    >
+    <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
       <button 
         onClick={onClose}
-        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        aria-label="Close"
       >
-        <X className="w-6 h-6" />
+        <X className="w-5 h-5" />
       </button>
 
       <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
@@ -97,6 +92,6 @@ export default function PaymentModalContent({
       <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6">
         You can upgrade or cancel anytime from your dashboard
       </p>
-    </motion.div>
+    </div>
   );
 }

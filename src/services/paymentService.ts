@@ -39,17 +39,25 @@ export async function processPayment(
     const amountInILS = Math.round(amount * 3.7 * 100);
 
     const params = new URLSearchParams({
-      Masof: masof,
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: apiKey,
       PassP: passp,
+      Masof: masof,
       Amount: amountInILS.toString(),
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
         : 'TaskEase Credits',
       UTF8: 'True',
+      UTF8out: 'True',
       UserId: userId,
       Tash: isSubscription ? '1' : undefined,
       Coin: '1', // ILS
       PageLang: 'ENG',
+      Sign: 'True',
+      MoreData: 'True',
+      sendemail: 'True',
+      tmp: Date.now().toString(),
       ...(isSubscription && {
         HK_TYPE: '2', // Subscription
         HK_TIMES: isYearly ? '12' : '1', // Number of payments
