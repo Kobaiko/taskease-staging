@@ -2,6 +2,9 @@ import { db } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
+const BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3001' 
+  : 'https://staging.gettaskease.com';
 
 interface PaymentResponse {
   Id: string;
@@ -26,8 +29,8 @@ interface PaymentResponse {
 
 async function getPaymentSignature(params: Record<string, string>): Promise<string | null> {
   try {
-    // Instead of calling Yaad directly, we'll use our backend proxy
-    const response = await fetch('https://api.staging.gettaskease.com/api/payment/sign', {
+    // Use the same domain as frontend
+    const response = await fetch(`${BASE_URL}/api/payment/sign`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
