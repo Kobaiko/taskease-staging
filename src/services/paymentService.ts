@@ -29,7 +29,7 @@ interface PaymentResponse {
 
 async function getPaymentSignature(params: Record<string, string>): Promise<string | null> {
   try {
-    const response = await fetch(`${BASE_URL}/api/payment/sign`, {
+    const response = await fetch(`${BASE_URL}/payment-sign`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
