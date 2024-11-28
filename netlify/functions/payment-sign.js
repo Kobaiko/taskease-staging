@@ -1,15 +1,41 @@
-import fetch from 'node-fetch';
+const fetch = require('node-fetch');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Only allow POST
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { 
+      statusCode: 405, 
+      body: JSON.stringify({ error: 'Method Not Allowed' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      }
+    };
+  }
+
+  // Handle OPTIONS request for CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: ''
+    };
   }
 
   try {
     const params = JSON.parse(event.body);
     console.log('Received params:', params);
     
+    if (!process.env.YAAD_API_KEY) {
+      throw new Error('YAAD_API_KEY environment variable is not set');
+    }
+
     // Add required APISign parameters
     const signParams = {
       ...params,
@@ -18,7 +44,7 @@ export const handler = async (event, context) => {
       KEY: process.env.YAAD_API_KEY
     };
 
-    console.log('Sending to Yaad:', signParams);
+    console.log('Sending to Yaad:', { ...signParams, KEY: '[REDACTED]' });
 
     // Convert params to URLSearchParams
     const searchParams = new URLSearchParams();
@@ -46,10 +72,9 @@ export const handler = async (event, context) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        // Add CORS headers
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: JSON.stringify({ signature: data })
     };
@@ -58,9 +83,10 @@ export const handler = async (event, context) => {
     return {
       statusCode: 500,
       headers: {
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: JSON.stringify({ error: error.message })
     };
