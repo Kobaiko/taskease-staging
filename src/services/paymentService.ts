@@ -29,7 +29,6 @@ interface PaymentResponse {
 
 async function getPaymentSignature(params: Record<string, string>): Promise<string | null> {
   try {
-    // Use the same domain as frontend
     const response = await fetch(`${BASE_URL}/api/payment/sign`, {
       method: 'POST',
       headers: {

@@ -14,13 +14,18 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Enable CORS for development and staging
-app.use(cors({
-  origin: ['http://localhost:5173', 'https://staging.gettaskease.com'],
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://staging.gettaskease.com'
+  ],
   methods: ['GET', 'POST'],
   credentials: true
-}));
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(join(__dirname, 'dist')));
 
@@ -30,39 +35,44 @@ const openai = new OpenAI({
 
 app.post('/api/payment/sign', async (req, res) => {
   try {
-    const params = {
-      ...req.body,
+    const params = req.body;
+    
+    // Add required APISign parameters
+    const signParams = {
+      ...params,
       action: 'APISign',
       What: 'SIGN',
-      KEY: Date.now().toString(16)
+      KEY: process.env.YAAD_API_KEY
     };
 
-    // Remove sensitive data
-    delete params.PassP;
-    delete params.Sign;
-    delete params.signature;
+    // Convert params to URLSearchParams
+    const searchParams = new URLSearchParams();
+    Object.entries(signParams).forEach(([key, value]) => {
+      searchParams.append(key, value);
+    });
 
-    // Build URL
-    const urlParams = new URLSearchParams(params);
-    const signUrl = `https://pay.hyp.co.il/p/?${urlParams.toString()}`;
+    // Make request to Yaad Pay
+    const response = await fetch(`https://pay.hyp.co.il/p/?${searchParams.toString()}`);
+    
+    if (!response.ok) {
+      console.error('Yaad Pay error:', await response.text());
+      throw new Error(`Yaad Pay error: ${response.status}`);
+    }
 
-    console.log('Calling Yaad API:', signUrl); // For debugging
+    const data = await response.text();
+    console.log('Yaad Pay response:', data);
 
-    // Call Yaad API
-    const response = await fetch(signUrl);
-    const signatureText = await response.text();
+    // Extract signature from response
+    const responseParams = new URLSearchParams(data);
+    const signature = responseParams.get('signature');
 
-    console.log('Yaad Response:', signatureText); // For debugging
-
-    // Extract signature
-    const signatureMatch = signatureText.match(/&signature=([^&]+)$/);
-    if (!signatureMatch) {
+    if (!signature) {
       throw new Error('No signature in response');
     }
 
-    res.json({ signature: signatureMatch[1] });
+    res.json({ signature });
   } catch (error) {
-    console.error('Error getting signature:', error);
+    console.error('Payment signature error:', error);
     res.status(500).json({ error: error.message });
   }
 });
