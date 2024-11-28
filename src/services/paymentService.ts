@@ -1,9 +1,45 @@
 import { API_ENDPOINTS } from '../lib/constants';
-import { PaymentError, ValidationError } from '../lib/errors';
-import { getPaymentSignature } from './payment/signature';
-import { validatePaymentResponse, getPaymentErrorMessage } from './payment/validation';
-import { createPaymentParams } from './payment/utils';
-import type { PaymentResponse, PaymentOptions } from '../types/payment';
+
+interface PaymentParams {
+  Amount: string;
+  Currency?: string;
+  Info: string;
+  UserId: string;
+  [key: string]: string | undefined;
+}
+
+interface PaymentOptions {
+  isSubscription?: boolean;
+  isYearly?: boolean;
+}
+
+export class PaymentError extends Error {
+  constructor(message: string, public details?: unknown) {
+    super(message);
+    this.name = 'PaymentError';
+  }
+}
+
+async function getPaymentSignature(params: PaymentParams): Promise<string> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.PAYMENT.BASE_URL}/payment-sign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get signature: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.signature;
+  } catch (error) {
+    throw new PaymentError('Failed to get payment signature', error);
+  }
+}
 
 export async function processPayment(
   userId: string,
@@ -11,29 +47,49 @@ export async function processPayment(
   options: PaymentOptions = {}
 ): Promise<string> {
   try {
-    if (!userId) throw new ValidationError('User ID is required');
-    if (amount <= 0) throw new ValidationError('Amount must be greater than 0');
+    const { isSubscription = false, isYearly = false } = options;
 
-    const params = createPaymentParams(userId, amount, options);
+    // Convert amount to ILS (1 USD ≈ 3.7 ILS)
+    const amountInILS = Math.round(amount * 3.7 * 100) / 100;
+
+    const params: PaymentParams = {
+      Amount: amountInILS.toString(),
+      Info: isSubscription 
+        ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
+        : 'TaskEase Credits',
+      UserId: userId,
+      Currency: '1', // ILS
+      UTF8: 'True',
+      UTF8out: 'True',
+      Sign: 'True',
+      MoreData: 'True'
+    };
+
+    if (isSubscription) {
+      Object.assign(params, {
+        HK: 'True',
+        Tash: isYearly ? '12' : '1',
+        freq: isYearly ? 'yearly' : 'monthly',
+        OnlyOnApprove: 'True'
+      });
+    }
+
     const signature = await getPaymentSignature(params);
     params.signature = signature;
 
-    const urlParams = new URLSearchParams(params);
+    const urlParams = new URLSearchParams({
+      ...params,
+      Masof: import.meta.env.VITE_YAAD_MASOF,
+      PassP: import.meta.env.VITE_YAAD_PASSP
+    });
+
     return `${API_ENDPOINTS.PAYMENT.YAAD_URL}?${urlParams.toString()}`;
   } catch (error) {
-    if (error instanceof PaymentError) {
-      throw error;
-    }
-    throw new PaymentError('Failed to process payment', undefined, error);
+    throw new PaymentError('Failed to process payment', error);
   }
 }
 
-export async function verifyPayment(paymentResponse: PaymentResponse): Promise<boolean> {
-  try {
-    return validatePaymentResponse(paymentResponse);
-  } catch (error) {
-    throw new PaymentError('Failed to verify payment', undefined, error);
-  }
+export function verifyPayment(response: any): boolean {
+  const validCodes = ['0', '800'];
+  return validCodes.includes(response.CCode);
 }
-
-export { getPaymentErrorMessage };

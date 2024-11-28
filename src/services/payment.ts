@@ -1,58 +1,88 @@
-const YAAD_API_KEY = 'd6a3f9214e28fb431bbfa7eb57ff7f195b9a715d';
-const YAAD_MASOF = '0010297222';
-const YAAD_BASE_URL = 'https://icom.yaad.net/p/';
+import { API_ENDPOINTS } from '../lib/constants';
 
-interface PaymentResponse {
-  Id: string;
-  CCode: string;
-  Amount: string;
-  ACode: string;
+interface PaymentOptions {
+  isSubscription?: boolean;
+  isYearly?: boolean;
+  language?: 'HEB' | 'ENG';
 }
 
-export async function initiateSubscription(userId: string, email: string, name: string): Promise<PaymentResponse> {
-  const params = new URLSearchParams({
-    action: 'pay',
-    Masof: YAAD_MASOF,
-    KEY: YAAD_API_KEY,
-    Amount: '8',
-    Info: 'TaskEase Monthly Subscription',
-    UserId: userId,
-    ClientName: name,
-    email,
-    Coin: '1', // ILS
-    Tash: '1', // Single payment
-    MoreData: 'True',
-    UTF8: 'True',
-    UTF8out: 'True',
-    Sign: 'True',
-    sendemail: 'True',
-  });
-
-  const response = await fetch(`${YAAD_BASE_URL}?${params.toString()}`);
-  
-  if (!response.ok) {
-    throw new Error('Payment initiation failed');
+export class PaymentError extends Error {
+  constructor(message: string, public details?: unknown) {
+    super(message);
+    this.name = 'PaymentError';
   }
-
-  const data = await response.json();
-  return data;
 }
 
-export async function verifyPayment(paymentId: string): Promise<boolean> {
-  const params = new URLSearchParams({
-    action: 'APISign',
-    What: 'VERIFY',
-    KEY: YAAD_API_KEY,
-    Masof: YAAD_MASOF,
-    Id: paymentId,
-  });
+async function getPaymentSignature(params: Record<string, string>): Promise<string> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.PAYMENT.BASE_URL}/payment-sign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params)
+    });
 
-  const response = await fetch(`${YAAD_BASE_URL}?${params.toString()}`);
-  
-  if (!response.ok) {
-    return false;
+    if (!response.ok) {
+      throw new Error(`Failed to get signature: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.signature;
+  } catch (error) {
+    throw new PaymentError('Failed to get payment signature', error);
   }
+}
 
-  const data = await response.json();
-  return data.CCode === '0';
+export async function processPayment(
+  userId: string,
+  amount: number,
+  options: PaymentOptions = {}
+): Promise<string> {
+  try {
+    const { isSubscription = false, isYearly = false, language = 'ENG' } = options;
+
+    // Convert USD to ILS (1 USD ≈ 3.7 ILS)
+    const amountInILS = Math.round(amount * 3.7 * 100) / 100;
+
+    const params = {
+      Amount: amountInILS.toString(),
+      Info: isSubscription 
+        ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
+        : 'TaskEase Credits',
+      UserId: userId,
+      Currency: '1', // ILS
+      UTF8: 'True',
+      UTF8out: 'True',
+      Sign: 'True',
+      MoreData: 'True',
+      PageLang: language
+    };
+
+    if (isSubscription) {
+      Object.assign(params, {
+        HK: 'True',
+        Tash: isYearly ? '12' : '1',
+        freq: isYearly ? 'yearly' : 'monthly',
+        OnlyOnApprove: 'True'
+      });
+    }
+
+    const signature = await getPaymentSignature(params);
+    const urlParams = new URLSearchParams({
+      ...params,
+      signature,
+      Masof: import.meta.env.VITE_YAAD_MASOF,
+      PassP: import.meta.env.VITE_YAAD_PASSP
+    });
+
+    return `${API_ENDPOINTS.PAYMENT.YAAD_URL}?${urlParams.toString()}`;
+  } catch (error) {
+    throw new PaymentError('Failed to process payment', error);
+  }
+}
+
+export function verifyPayment(response: any): boolean {
+  const validCodes = ['0', '800'];
+  return validCodes.includes(response.CCode);
 }
