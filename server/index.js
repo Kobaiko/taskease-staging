@@ -27,15 +27,15 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(express.static(join(__dirname, 'dist')));
 
-const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY
-});
+// Serve static files from the dist directory
+app.use(express.static(join(__dirname, '../dist')));
 
+// API Routes
 app.post('/api/payment/sign', async (req, res) => {
   try {
     const params = req.body;
+    console.log('Received params:', params);
     
     // Add required APISign parameters
     const signParams = {
@@ -45,17 +45,23 @@ app.post('/api/payment/sign', async (req, res) => {
       KEY: process.env.YAAD_API_KEY
     };
 
+    console.log('Sending to Yaad:', signParams);
+
     // Convert params to URLSearchParams
     const searchParams = new URLSearchParams();
     Object.entries(signParams).forEach(([key, value]) => {
       searchParams.append(key, value);
     });
 
+    const yaadUrl = `https://pay.hyp.co.il/p/?${searchParams.toString()}`;
+    console.log('Calling Yaad URL:', yaadUrl);
+
     // Make request to Yaad Pay
-    const response = await fetch(`https://pay.hyp.co.il/p/?${searchParams.toString()}`);
+    const response = await fetch(yaadUrl);
     
     if (!response.ok) {
-      console.error('Yaad Pay error:', await response.text());
+      const errorText = await response.text();
+      console.error('Yaad Pay error:', errorText);
       throw new Error(`Yaad Pay error: ${response.status}`);
     }
 
@@ -70,6 +76,7 @@ app.post('/api/payment/sign', async (req, res) => {
       throw new Error('No signature in response');
     }
 
+    console.log('Extracted signature:', signature);
     res.json({ signature });
   } catch (error) {
     console.error('Payment signature error:', error);
@@ -77,62 +84,39 @@ app.post('/api/payment/sign', async (req, res) => {
   }
 });
 
+// OpenAI configuration
+const openai = new OpenAI({
+  apiKey: process.env.VITE_OPENAI_API_KEY
+});
+
 app.post('/api/generate-subtasks', async (req, res) => {
   try {
-    const { title, description } = req.body;
-
-    if (!title || !description) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        details: 'Both title and description are required'
-      });
-    }
-
-    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
-    Task: ${title}
-    Description: ${description}
-    
-    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
-
+    const { task } = req.body;
     const completion = await openai.chat.completions.create({
-      messages: [{ 
-        role: "system", 
-        content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
-      }, {
-        role: "user",
-        content: prompt
-      }],
-      model: "gpt-3.5-turbo-1106",
-      response_format: { type: "json_object" },
-      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful task breakdown assistant. Break down the given task into 3-5 concrete, actionable subtasks. Format your response as a JSON array of strings, each string being a subtask."
+        },
+        {
+          role: "user",
+          content: task
+        }
+      ],
+      model: "gpt-3.5-turbo",
     });
 
-    const result = JSON.parse(completion.choices[0].message.content);
-    
-    if (!result.subtasks || !Array.isArray(result.subtasks)) {
-      throw new Error('Invalid response format from AI');
-    }
-
-    // Validate and sanitize subtasks
-    const sanitizedSubtasks = result.subtasks.map(subtask => ({
-      title: String(subtask.title),
-      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
-    }));
-
-    res.json({ subtasks: sanitizedSubtasks });
+    const subtasks = JSON.parse(completion.choices[0].message.content);
+    res.json({ subtasks });
   } catch (error) {
     console.error('Error generating subtasks:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate subtasks',
-      details: error instanceof Error ? error.message : 'Unknown error occurred'
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Handle all other routes by serving the index.html
+// Serve index.html for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
+  res.sendFile(join(__dirname, '../dist/index.html'));
 });
 
 app.listen(port, () => {
