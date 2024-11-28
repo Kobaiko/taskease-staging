@@ -1,11 +1,7 @@
 import { API_ENDPOINTS } from '../lib/constants';
-import { PaymentError } from '../lib/errors';
-import type { PaymentOptions } from '../types/payment';
 
-interface SubscriptionParams {
-  userId: string;
-  email: string;
-  displayName: string;
+interface PaymentOptions {
+  isSubscription?: boolean;
   isYearly?: boolean;
 }
 
@@ -43,12 +39,13 @@ export async function processPayment(
   options: PaymentOptions = {}
 ): Promise<string> {
   try {
-    const { isSubscription = false, isYearly = false, language = 'ENG' } = options;
+    const { isSubscription = false, isYearly = false } = options;
 
     // Convert USD to ILS (1 USD ≈ 3.7 ILS)
     const amountInILS = Math.round(amount * 3.7 * 100) / 100;
 
-    const params = {
+    // Basic payment parameters
+    const params: Record<string, string> = {
       Amount: amountInILS.toString(),
       Info: isSubscription 
         ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
@@ -59,9 +56,10 @@ export async function processPayment(
       UTF8out: 'True',
       Sign: 'True',
       MoreData: 'True',
-      PageLang: language
+      PageLang: 'ENG'
     };
 
+    // Add subscription parameters if needed
     if (isSubscription) {
       Object.assign(params, {
         HK: 'True',
@@ -79,25 +77,9 @@ export async function processPayment(
       PassP: import.meta.env.VITE_YAAD_PASSP
     });
 
-    return `${API_ENDPOINTS.PAYMENT.YAAD_URL}?${urlParams.toString()}`;
+    return `https://pay.hyp.co.il/p/?${urlParams.toString()}`;
   } catch (error) {
     throw new PaymentError('Failed to process payment', error);
-  }
-}
-
-export async function initiateSubscription(
-  { userId, email, displayName, isYearly = false }: SubscriptionParams
-): Promise<string> {
-  try {
-    const amount = isYearly ? 80 : 8; // $8/month or $80/year
-    
-    return processPayment(userId, amount, {
-      isSubscription: true,
-      isYearly,
-      language: 'ENG'
-    });
-  } catch (error) {
-    throw new PaymentError('Failed to initiate subscription', error);
   }
 }
 

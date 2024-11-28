@@ -26,8 +26,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       
       const paymentUrl = await processPayment(currentUser.uid, amount, {
         isSubscription: true,
-        isYearly,
-        language: 'ENG'
+        isYearly
       });
 
       // Open payment URL in new window
