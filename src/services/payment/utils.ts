@@ -1,6 +1,7 @@
 import { CURRENCY } from '../../lib/constants';
 import type { PaymentParams, PaymentOptions } from '../../types/payment';
 import { ValidationError } from '../../lib/errors';
+import { v4 as uuidv4 } from 'uuid';
 
 export function convertUSDToILS(amount: number): number {
   return Math.round(amount * CURRENCY.USD_TO_ILS * 100) / 100;
@@ -15,13 +16,35 @@ export function validateAmount(amount: number): void {
   }
 }
 
-export function validateUserId(userId: string): void {
+export function formatUserId(userId: string): string {
+  // For testing, use a valid test ID
+  if (process.env.NODE_ENV === 'development') {
+    return '000000000';
+  }
+
+  // Remove any non-numeric characters
+  const cleanId = userId.replace(/\D/g, '');
+
+  // Pad with zeros if needed
+  const paddedId = cleanId.padStart(9, '0');
+
+  // Validate the length
+  if (paddedId.length !== 9) {
+    throw new ValidationError('User ID must be 9 digits');
+  }
+
+  return paddedId;
+}
+
+export function validateUserId(userId: string): string {
   if (!userId) {
     throw new ValidationError('User ID is required');
   }
-  // Allow either a real ID or the test ID
-  if (userId.length !== 9 && userId !== '000000000') {
-    throw new ValidationError('Invalid User ID format');
+
+  try {
+    return formatUserId(userId);
+  } catch (error) {
+    throw new ValidationError('Invalid User ID format - must be 9 digits');
   }
 }
 
@@ -31,7 +54,7 @@ export function createPaymentParams(
   options: PaymentOptions = {}
 ): PaymentParams {
   validateAmount(amount);
-  validateUserId(userId);
+  const formattedUserId = validateUserId(userId);
 
   const {
     isSubscription = false,
@@ -47,17 +70,19 @@ export function createPaymentParams(
     ? amount 
     : convertUSDToILS(amount);
 
+  const orderId = uuidv4().replace(/-/g, '').slice(0, 15);
+
   const params: PaymentParams = {
     // Required parameters
     Masof: import.meta.env.VITE_YAAD_MASOF,
     PassP: import.meta.env.VITE_YAAD_PASSP,
     action: 'pay',
-    Amount: amountInILS.toString(),
+    Amount: amountInILS.toFixed(2),
     Info: isSubscription 
       ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
       : 'TaskEase Credits',
-    Order: Date.now().toString(),
-    UserId: userId,
+    Order: orderId,
+    UserId: formattedUserId,
 
     // Encoding and format
     UTF8: 'True',
