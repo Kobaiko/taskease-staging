@@ -3,8 +3,8 @@ import { doc, updateDoc } from 'firebase/firestore';
 
 const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 const BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3001' 
-  : 'https://staging.gettaskease.com';
+  ? 'http://localhost:8888/.netlify/functions' 
+  : 'https://staging.gettaskease.com/.netlify/functions';
 
 interface PaymentResponse {
   Id: string;
