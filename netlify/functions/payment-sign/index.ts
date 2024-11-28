@@ -1,13 +1,10 @@
 import { Handler } from '@netlify/functions';
-import fetch from 'node-fetch';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
+import { validateEnvironment, validateRequest } from './validation';
+import { getYaadSignature } from './yaad';
+import { corsHeaders } from './config';
 
 export const handler: Handler = async (event) => {
+  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -16,6 +13,7 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  // Validate request method
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -25,40 +23,14 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    if (!process.env.YAAD_API_KEY || !process.env.YAAD_MASOF || !process.env.YAAD_PASSP) {
-      throw new Error('Missing required environment variables');
-    }
+    // Validate environment variables
+    validateEnvironment();
 
-    const params = JSON.parse(event.body);
+    // Parse and validate request parameters
+    const params = validateRequest(JSON.parse(event.body));
     
-    // Create signature request parameters
-    const signParams = new URLSearchParams({
-      action: 'APISign',
-      What: 'SIGN',
-      KEY: process.env.YAAD_API_KEY,
-      Masof: process.env.YAAD_MASOF,
-      PassP: process.env.YAAD_PASSP,
-      ...params
-    });
-
-    console.log('Requesting signature with params:', {
-      ...Object.fromEntries(signParams),
-      KEY: '[REDACTED]'
-    });
-
-    const response = await fetch(`https://pay.hyp.co.il/p/?${signParams.toString()}`);
-    
-    if (!response.ok) {
-      throw new Error(`Yaad API error: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    const responseParams = new URLSearchParams(responseText);
-    const signature = responseParams.get('signature');
-
-    if (!signature) {
-      throw new Error('No signature in response');
-    }
+    // Get signature from Yaad
+    const signature = await getYaadSignature(params);
 
     return {
       statusCode: 200,
@@ -67,7 +39,10 @@ export const handler: Handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Payment signature error:', error);
+    console.error('Payment signature error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
 
     return {
       statusCode: 500,
