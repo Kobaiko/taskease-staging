@@ -1,3 +1,6 @@
+import { API_ENDPOINTS } from '../lib/constants';
+import { PaymentError, ValidationError } from '../lib/errors';
+
 const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 const BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:8888/.netlify/functions' 
@@ -51,66 +54,83 @@ export async function processPayment(
   isSubscription: boolean = false,
   isYearly: boolean = false
 ): Promise<string> {
-  const masof = import.meta.env.VITE_YAAD_MASOF;
-  const passp = import.meta.env.VITE_YAAD_PASSP;
+  try {
+    if (!userId) throw new ValidationError('User ID is required');
+    if (amount <= 0) throw new ValidationError('Amount must be greater than 0');
 
-  // Convert USD to ILS (1 USD ≈ 3.7 ILS)
-  const amountInILS = Math.round(amount * 3.7 * 100) / 100;
+    const masof = import.meta.env.VITE_YAAD_MASOF;
+    const passp = import.meta.env.VITE_YAAD_PASSP;
 
-  // Basic payment parameters
-  const params: Record<string, string> = {
-    Masof: masof,
-    PassP: passp,
-    action: 'pay',
-    Amount: amountInILS.toString(),
-    Info: isSubscription 
-      ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
-      : 'TaskEase Credits',
-    Order: Date.now().toString(),
-    UTF8: 'True',
-    UTF8out: 'True',
-    Coin: '1',
-    MoreData: 'True',
-    PageLang: 'ENG',
-    tmp: '1',
-    J5: 'True',
-    sendemail: 'True',
-    Sign: 'True',
-    UserId: userId
-  };
+    // Convert USD to ILS (1 USD ≈ 3.7 ILS)
+    const amountInILS = Math.round(amount * 3.7 * 100) / 100;
 
-  // Add subscription parameters if needed
-  if (isSubscription) {
-    Object.assign(params, {
-      Tash: isYearly ? '12' : '1',
-      HK: 'True',
-      freq: isYearly ? 'yearly' : 'monthly',
-      OnlyOnApprove: 'True'
-    });
+    // Basic payment parameters
+    const params: Record<string, string> = {
+      Masof: masof,
+      PassP: passp,
+      action: 'pay',
+      Amount: amountInILS.toString(),
+      Info: isSubscription 
+        ? `TaskEase ${isYearly ? 'Yearly' : 'Monthly'} Subscription` 
+        : 'TaskEase Credits',
+      Order: Date.now().toString(),
+      UTF8: 'True',
+      UTF8out: 'True',
+      Coin: '1',
+      MoreData: 'True',
+      PageLang: 'ENG',
+      tmp: '1',
+      J5: 'True',
+      sendemail: 'True',
+      Sign: 'True',
+      UserId: userId
+    };
+
+    // Add subscription parameters if needed
+    if (isSubscription) {
+      Object.assign(params, {
+        Tash: isYearly ? '12' : '1',
+        HK: 'True',
+        freq: isYearly ? 'yearly' : 'monthly',
+        OnlyOnApprove: 'True'
+      });
+    }
+
+    // Get signature from our backend
+    const signature = await getPaymentSignature(params);
+    params.signature = signature;
+
+    // Build final payment URL
+    const urlParams = new URLSearchParams(params);
+    return `${YAAD_API_URL}?${urlParams.toString()}`;
+  } catch (error) {
+    if (error instanceof PaymentError) {
+      throw error;
+    }
+    throw new PaymentError('Failed to process payment', undefined, error);
   }
-
-  // Get signature from our backend
-  const signature = await getPaymentSignature(params);
-  params.signature = signature;
-
-  // Build final payment URL
-  const urlParams = new URLSearchParams(params);
-  return `${YAAD_API_URL}?${urlParams.toString()}`;
 }
 
 export async function verifyPayment(paymentResponse: PaymentResponse): Promise<boolean> {
-  const { CCode } = paymentResponse;
-  return CCode === '0' || CCode === '800';
+  try {
+    const { CCode } = paymentResponse;
+    return CCode === '0' || CCode === '800';
+  } catch (error) {
+    throw new PaymentError('Failed to verify payment', undefined, error);
+  }
 }
 
 function getErrorMessage(code: string): string {
   const errorCodes: Record<string, string> = {
     '0': 'Success',
-    '800': 'Postponed transaction',
-    '901': 'No permission',
-    '902': 'Authentication error',
-    '999': 'Communication error'
+    '800': 'Postponed payment',
+    '1': 'Cancelled by user',
+    '2': 'Card blocked',
+    '3': 'Invalid card',
+    '4': 'Invalid expiry date'
   };
 
   return errorCodes[code] || `Unknown error code: ${code}`;
 }
+
+export { getErrorMessage };
