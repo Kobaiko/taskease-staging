@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-const YAAD_API_URL = 'https://icom.yaad.net/p/';
+const YAAD_API_URL = 'https://pay.hyp.co.il/p/';
 
 export const handler = async (event) => {
   // Handle CORS preflight
@@ -29,58 +29,52 @@ export const handler = async (event) => {
 
   try {
     // Validate environment variables
-    if (!process.env.YAAD_API_KEY) {
-      throw new Error('YAAD_API_KEY environment variable is not set');
+    if (!process.env.YAAD_API_KEY || !process.env.YAAD_MASOF) {
+      throw new Error('Missing required environment variables');
     }
 
     // Parse and validate request parameters
     const params = JSON.parse(event.body);
-    const requiredParams = ['Masof', 'Amount', 'Info'];
-    const missingParams = requiredParams.filter(param => !params[param]);
     
-    if (missingParams.length > 0) {
-      return {
-        statusCode: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          error: 'Missing required parameters',
-          details: missingParams
-        })
-      };
-    }
-
     // Create signature request parameters
     const signParams = new URLSearchParams({
-      ...params,
       action: 'APISign',
       What: 'SIGN',
-      KEY: process.env.YAAD_API_KEY
+      KEY: process.env.YAAD_API_KEY,
+      Masof: process.env.YAAD_MASOF,
+      Amount: params.Amount || '',
+      Currency: params.Currency || '1',
+      Info: params.Info || '',
+      UserId: params.UserId || '',
+      UTF8: 'True',
+      UTF8out: 'True'
+    });
+
+    console.log('Requesting signature with params:', {
+      ...Object.fromEntries(signParams),
+      KEY: '[REDACTED]'
     });
 
     // Make request to Yaad API
-    const yaadResponse = await fetch(YAAD_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: signParams.toString()
-    });
+    const yaadResponse = await fetch(`${YAAD_API_URL}?${signParams.toString()}`);
+    const responseText = await yaadResponse.text();
 
     // Handle API errors
     if (!yaadResponse.ok) {
-      const errorText = await yaadResponse.text();
       console.error('Yaad API error:', {
         status: yaadResponse.status,
-        response: errorText
+        response: responseText
       });
-      
       throw new Error(`Yaad API error: ${yaadResponse.status}`);
     }
 
-    // Parse and validate signature
-    const signature = await yaadResponse.text();
-    if (!signature || signature.length < 32) {
-      throw new Error('Invalid signature received from Yaad');
+    // Parse signature from response
+    const responseParams = new URLSearchParams(responseText);
+    const signature = responseParams.get('signature');
+
+    if (!signature) {
+      console.error('Invalid response:', responseText);
+      throw new Error('No signature in response');
     }
 
     console.log('Payment signature generated successfully');
@@ -90,6 +84,7 @@ export const handler = async (event) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ signature })
     };
+
   } catch (error) {
     console.error('Payment signature error:', {
       message: error.message,
