@@ -1,9 +1,12 @@
 import { API_ENDPOINTS } from '../lib/constants';
+import { PaymentError } from '../lib/errors';
+import type { PaymentOptions } from '../types/payment';
 
-interface PaymentOptions {
-  isSubscription?: boolean;
+interface SubscriptionParams {
+  userId: string;
+  email: string;
+  displayName: string;
   isYearly?: boolean;
-  language?: 'HEB' | 'ENG';
 }
 
 export class PaymentError extends Error {
@@ -79,6 +82,22 @@ export async function processPayment(
     return `${API_ENDPOINTS.PAYMENT.YAAD_URL}?${urlParams.toString()}`;
   } catch (error) {
     throw new PaymentError('Failed to process payment', error);
+  }
+}
+
+export async function initiateSubscription(
+  { userId, email, displayName, isYearly = false }: SubscriptionParams
+): Promise<string> {
+  try {
+    const amount = isYearly ? 80 : 8; // $8/month or $80/year
+    
+    return processPayment(userId, amount, {
+      isSubscription: true,
+      isYearly,
+      language: 'ENG'
+    });
+  } catch (error) {
+    throw new PaymentError('Failed to initiate subscription', error);
   }
 }
 

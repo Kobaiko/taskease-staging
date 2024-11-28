@@ -4,8 +4,8 @@ import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { PaymentModal } from '../components/PaymentModal';
-import { addFreeCredits, setSubscription } from '../services/creditService';
-import { initiateSubscription } from '../services/payment';
+import { addFreeCredits } from '../services/creditService';
+import { processPayment } from '../services/payment';
 import { auth } from '../lib/firebase';
 
 export function Register() {
@@ -57,18 +57,16 @@ export function Register() {
       const user = auth.currentUser;
       if (!user) throw new Error('No user found');
 
-      const payment = await initiateSubscription(
-        user.uid,
-        email,
-        displayName
-      );
+      const paymentUrl = await processPayment(user.uid, 8, {
+        isSubscription: true,
+        isYearly: false
+      });
 
-      if (payment.CCode === '0') {
-        await setSubscription(user.uid, true);
-        navigate('/');
-      } else {
-        throw new Error('Payment failed');
-      }
+      // Open payment URL in new window
+      window.open(paymentUrl, '_blank');
+      
+      // Navigate to dashboard
+      navigate('/');
     } catch (err) {
       console.error('Subscription error:', err);
       setError('Failed to process subscription');
@@ -168,8 +166,8 @@ export function Register() {
 
       <PaymentModal
         isOpen={showPaymentModal}
-        onChooseCredits={handleChooseCredits}
-        onChooseSubscription={handleChooseSubscription}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handleChooseSubscription}
       />
     </div>
   );
