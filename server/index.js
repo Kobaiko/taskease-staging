@@ -1,28 +1,70 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import OpenAI from 'openai';
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import fetch from 'node-fetch';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from the root directory
-dotenv.config({ path: join(__dirname, '../.env') });
-
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Enable CORS for development and staging
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'https://staging.gettaskease.com'],
+  methods: ['GET', 'POST'],
   credentials: true
 }));
 
 app.use(express.json());
+app.use(express.static(join(__dirname, 'dist')));
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.VITE_OPENAI_API_KEY
+});
+
+app.post('/api/payment/sign', async (req, res) => {
+  try {
+    const params = {
+      ...req.body,
+      action: 'APISign',
+      What: 'SIGN',
+      KEY: Date.now().toString(16)
+    };
+
+    // Remove sensitive data
+    delete params.PassP;
+    delete params.Sign;
+    delete params.signature;
+
+    // Build URL
+    const urlParams = new URLSearchParams(params);
+    const signUrl = `https://pay.hyp.co.il/p/?${urlParams.toString()}`;
+
+    console.log('Calling Yaad API:', signUrl); // For debugging
+
+    // Call Yaad API
+    const response = await fetch(signUrl);
+    const signatureText = await response.text();
+
+    console.log('Yaad Response:', signatureText); // For debugging
+
+    // Extract signature
+    const signatureMatch = signatureText.match(/&signature=([^&]+)$/);
+    if (!signatureMatch) {
+      throw new Error('No signature in response');
+    }
+
+    res.json({ signature: signatureMatch[1] });
+  } catch (error) {
+    console.error('Error getting signature:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.post('/api/generate-subtasks', async (req, res) => {
@@ -31,47 +73,29 @@ app.post('/api/generate-subtasks', async (req, res) => {
 
     if (!title || !description) {
       return res.status(400).json({
-        error: 'Missing required fields'
+        error: 'Missing required fields',
+        details: 'Both title and description are required'
       });
     }
 
-    const prompt = `You are Taskease, a professional project manager. Your task is to receive a high-level project description and break it down into a sequence of 6-12 clear, actionable subtasks. Each subtask should take no longer than 60 minutes to complete. If a task exceeds this limit, divide it further into smaller steps.
-
-For each subtask:
-1. Write a precise, professional description.
-2. Provide a realistic time estimate for completion, keeping it within the 60-minute threshold.
-3. Arrange subtasks in a logical order, considering dependencies or prerequisites as needed.
-
-Task Title: ${title}
-Task Description: ${description}
-
-Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
-
-Example:
-{
-  "subtasks": [
-    {"title": "Research target demographics and industry trends", "estimatedTime": 45},
-    {"title": "Outline campaign objectives and goals", "estimatedTime": 30},
-    {"title": "Identify key messaging points and themes", "estimatedTime": 40},
-    {"title": "Develop a list of potential promotional channels", "estimatedTime": 50},
-    {"title": "Draft a budget outline", "estimatedTime": 30},
-    {"title": "Review and refine proposal content", "estimatedTime": 60}
-  ]
-}`;
+    const prompt = `Create a detailed breakdown of this task into smaller subtasks, where each subtask takes no more than 60 minutes:
+    Task: ${title}
+    Description: ${description}
+    
+    Return ONLY a JSON object with a 'subtasks' array containing objects with 'title' and 'estimatedTime' (in minutes) properties.
+    Example: {"subtasks": [{"title": "Research competitors", "estimatedTime": 45}]}`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are Taskease, a professional project manager that breaks down tasks into clear, actionable subtasks. Always return valid JSON with realistic time estimates."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" }
+      messages: [{ 
+        role: "system", 
+        content: "You are a task breakdown assistant. Always respond with valid JSON containing subtasks array."
+      }, {
+        role: "user",
+        content: prompt
+      }],
+      model: "gpt-3.5-turbo-1106",
+      response_format: { type: "json_object" },
+      temperature: 0.7,
     });
 
     const result = JSON.parse(completion.choices[0].message.content);
@@ -80,14 +104,25 @@ Example:
       throw new Error('Invalid response format from AI');
     }
 
-    res.json({ subtasks: result.subtasks });
+    // Validate and sanitize subtasks
+    const sanitizedSubtasks = result.subtasks.map(subtask => ({
+      title: String(subtask.title),
+      estimatedTime: Math.min(Math.max(1, Number(subtask.estimatedTime)), 60)
+    }));
+
+    res.json({ subtasks: sanitizedSubtasks });
   } catch (error) {
     console.error('Error generating subtasks:', error);
     res.status(500).json({ 
       error: 'Failed to generate subtasks',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
+});
+
+// Handle all other routes by serving the index.html
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(port, () => {
