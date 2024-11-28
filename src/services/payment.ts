@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '../lib/constants';
+import { useNavigate } from 'react-router-dom';
 
 interface PaymentOptions {
   isSubscription?: boolean;
@@ -81,6 +82,18 @@ export async function processPayment(
   } catch (error) {
     throw new PaymentError('Failed to process payment', error);
   }
+}
+
+export function initiatePayment(userId: string, amount: number, options: { isSubscription?: boolean; isYearly?: boolean } = {}) {
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams({
+    userId,
+    amount: amount.toString(),
+    subscription: options.isSubscription?.toString() || 'false',
+    yearly: options.isYearly?.toString() || 'false'
+  });
+  
+  navigate(`/payment?${searchParams.toString()}`);
 }
 
 export function verifyPayment(response: any): boolean {

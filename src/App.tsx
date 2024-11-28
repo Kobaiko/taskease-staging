@@ -8,6 +8,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { AccountDeleted } from './pages/AccountDeleted';
 import { DeleteFeedback } from './pages/DeleteFeedback';
+import { Payment } from './pages/Payment';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/account-deleted" element={<AccountDeleted />} />
           <Route path="/delete-feedback" element={<DeleteFeedback />} />
+          <Route path="/payment" element={<Payment />} />
           <Route
             path="/"
             element={
